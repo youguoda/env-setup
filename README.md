@@ -45,6 +45,7 @@ env-setup/
 │   ├── cheatsheet.md
 │   └── troubleshooting.md
 ├── scripts/                   # 可直接执行的脚本
+│   ├── restore.sh             # ⭐ 一键还原整个环境（新机器必备）
 │   ├── clean_c.ps1            # C 盘清理（PowerShell）
 │   ├── migrate_wsl.ps1        # WSL 迁移（PowerShell）
 │   ├── wsl_health.sh          # WSL 健康检查（Bash）
@@ -59,14 +60,38 @@ env-setup/
 ## ⚡ 快速命令
 
 ```bash
+# 🚀 新机器一键还原（推荐）
+bash scripts/restore.sh
+
 # 一键体检
 bash scripts/wsl_health.sh
 
-# 一键安装工具链
+# 一键安装工具链（restore.sh 的子集，不含系统更新和 apt 源切换）
 bash scripts/install_tools.sh
 
 # 查看常用命令速查
 cat docs/cheatsheet.md
+```
+
+---
+
+## 🆕 新机器恢复流程
+
+```bash
+# 1. 在新机器装好 WSL Ubuntu 22.04 后，把这个项目复制进 WSL
+git clone <你的仓库地址> ~/projects/personal/env-setup
+# 或者直接 scp 整个项目过去
+
+# 2. 一键还原
+cd ~/projects/personal/env-setup
+bash scripts/restore.sh
+
+# 3. 配置 Windows 端 .wslconfig
+# 在 Windows PowerShell 中：
+Copy-Item scripts\wslconfig.template $env:USERPROFILE\.wslconfig
+wsl --shutdown
+
+# 4. 重新打开 WSL，享受完整环境
 ```
 
 ---
