@@ -27,6 +27,7 @@
 | [02-wsl-migration.md](docs/02-wsl-migration.md) | WSL2 迁移到其他盘 | C 盘被 vhdx 占满 |
 | [03-wsl-health-check.md](docs/03-wsl-health-check.md) | WSL 健康检查清单 | 定期体检 |
 | [04-optimization.md](docs/04-optimization.md) | 性能优化与工具链 | 新装 WSL 必看 |
+| [05-restore.md](docs/05-restore.md) | ⭐ 一键还原脚本详解 | **新机器恢复必备** |
 | [cheatsheet.md](docs/cheatsheet.md) | 工具速查表 | 日常查阅 |
 | [troubleshooting.md](docs/troubleshooting.md) | 故障排查 FAQ | 遇到问题先看这里 |
 

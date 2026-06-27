@@ -238,4 +238,4 @@ git config --global alias.ca "commit --amend"
 
 ---
 
-⏮️ [← 03 健康检查](03-wsl-health-check.md) | [返回主页](../README.md) | 下一篇：[速查表 →](cheatsheet.md)
+⏮️ [← 03 健康检查](03-wsl-health-check.md) | [返回主页](../README.md) | 下一篇：[05 一键还原 →](05-restore.md)

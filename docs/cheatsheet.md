@@ -298,4 +298,4 @@ port 8080         # 🟨 → 🟩 who-listen，看端口占用
 
 ---
 
-⏮️ [← 04 优化方案](04-optimization.md) | [返回主页](../README.md) | 下一篇：[故障排查 →](troubleshooting.md)
+⏮️ [← 05 一键还原](05-restore.md) | [返回主页](../README.md) | 下一篇：[故障排查 →](troubleshooting.md)
