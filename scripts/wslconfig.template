@@ -1,0 +1,36 @@
+# Windows 端 .wslconfig 模板
+# 位置: C:\Users\<你的用户名>\.wslconfig
+# 修改后需 wsl --shutdown 重启 WSL 生效
+
+[wsl2]
+# 网络模式：mirrored = 与 Windows 共享网络栈（推荐）
+networkingMode=mirrored
+
+# 自动继承 Windows 的代理设置（如 VPN/SS 代理）
+autoProxy=true
+
+# 在 WSL PATH 中追加 Windows 程序路径（让 code/explorer.exe 等可调用）
+appendWindowsPath=true
+
+# 自动稀疏化 vhdx，防止虚拟磁盘虚胖（强烈推荐）
+sparseVhd=true
+
+# 可选：限制 WSL 内存上限（防止占用过多 Windows 内存）
+# memory=16GB
+
+# 可选：限制 CPU 核数
+# processors=8
+
+# 可选：指定 swap 大小
+# swap=4GB
+
+# 可选：硬盘 IO 优先级（防止 WSL 占用过多磁盘带宽）
+# hostTlsStartupSupport=false
+
+
+[experimental]
+# 闲置时自动归还内存给 Windows（gradual=缓慢回收，dropcache=激进回收）
+autoMemoryReclaim=gradual
+
+# 可选：默认用户（迁移后通常用 /etc/wsl.conf 里的 [user] default）
+# defaultUser=guoda
