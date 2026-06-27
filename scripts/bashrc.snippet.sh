@@ -67,6 +67,8 @@ alias gd='git diff'
 alias gl='git log --oneline -20'
 alias gp='git pull'
 alias gP='git push'
+alias gaa='git add --all'
+alias gc='git commit'
 
 # WSL ↔ Windows 互访（注意：14393 是 Windows 用户名，迁移到新机器时需要修改）
 alias winhome='cd /mnt/c/Users/14393'

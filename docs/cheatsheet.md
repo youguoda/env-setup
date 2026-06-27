@@ -281,8 +281,8 @@ gs                # 🟨 看状态
 gco -b feat/x     # 🟨 新分支
 # ...编辑代码...
 gd                # 🟨 看改动
-gaa               # ⚠️ 未配置：可在 .bashrc 加 alias gaa='git add --all'
-gc -m "msg"       # ⚠️ 未配置：可在 .bashrc 加 alias gc='git commit'
+gaa               # 🟨 git add --all
+gc -m "msg"       # 🟨 git commit
 gP                # 🟨 push
 ```
 
