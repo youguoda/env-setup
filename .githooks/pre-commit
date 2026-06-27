@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# pre-commit: 提交前用 shellcheck 静态检查暂存的 shell 脚本
+#
+# 启用方式(每台新机器执行一次):
+#   git config core.hooksPath .githooks
+#
+# 设计取舍:
+#   - 没装 shellcheck → 只警告不拦截(这是 env-setup 仓库,新机器上很可能还没装)
+#   - 装了 shellcheck 且发现问题 → 拦截提交;紧急时用 git commit --no-verify 跳过
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+if ! command -v shellcheck > /dev/null 2>&1; then
+    echo "⚠ shellcheck 未安装,跳过 shell 静态检查"
+    echo "  安装后再提交可拦截低级错误: sudo apt install shellcheck"
+    exit 0
+fi
+
+# 收集暂存的 shell 文件:*.sh 以及无后缀的 myenv / myenv-clean
+mapfile -t files < <(
+    git diff --cached --name-only --diff-filter=ACM \
+        | grep -E '\.sh$|^scripts/(myenv|myenv-clean)$' || true
+)
+
+[ ${#files[@]} -eq 0 ] && exit 0
+
+fail=0
+for f in "${files[@]}"; do
+    [ -f "$ROOT/$f" ] || continue
+    # 只拦 warning 及以上;SC1090/SC1091 是运行时 source 的误报,排除
+    shellcheck -x --severity=warning --exclude=SC1090,SC1091 "$ROOT/$f" || fail=1
+done
+
+if [ "$fail" -ne 0 ]; then
+    echo ""
+    echo "✗ shellcheck 发现问题,提交被拦截。"
+    echo "  修复后重试,或临时跳过: git commit --no-verify"
+    exit 1
+fi
+exit 0
