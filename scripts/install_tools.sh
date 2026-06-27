@@ -10,6 +10,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"   # test_github / proxy_fetch
+
 echo "=========================================="
 echo "  WSL 工具链安装"
 echo "=========================================="
@@ -40,27 +44,7 @@ echo ""
 echo "=== 步骤 4: 安装现代工具到 ~/.local/bin ==="
 mkdir -p ~/.local/bin
 
-# 检测 github 连通性
-test_github() {
-    curl -sI --max-time 5 https://github.com > /dev/null 2>&1 && return 0 || return 1
-}
-
-# 通过代理下载
-proxy_fetch() {
-    local url=$1
-    local output=$2
-    if test_github; then
-        curl -fL --max-time 60 "$url" -o "$output"
-    else
-        for proxy in "https://ghproxy.com/" "https://gh-proxy.com/" "https://mirror.ghproxy.com/"; do
-            if curl -fL --max-time 60 "${proxy}${url}" -o "$output" 2>/dev/null; then
-                return 0
-            fi
-        done
-        return 1
-    fi
-}
-
+# test_github / proxy_fetch 来自 lib.sh
 test_github && echo "  github 直连可用 ✓" || echo "  github 直连不通，将使用代理 ⚠️"
 
 # --- zoxide ---
@@ -139,8 +123,14 @@ BAK_NAME=~/.bashrc.bak.$(date +%s)
 cp ~/.bashrc "$BAK_NAME"
 echo "  已备份原 .bashrc 到 $BAK_NAME"
 
+# 部署公共别名到 home（snippet 会 source 它，与仓库解耦）
+if [ -f "$SCRIPT_DIR/aliases.common.sh" ]; then
+    mkdir -p ~/.config/guoda
+    cp "$SCRIPT_DIR/aliases.common.sh" ~/.config/guoda/aliases.sh
+    echo "  ✓ 公共别名已部署到 ~/.config/guoda/aliases.sh"
+fi
+
 # 加载配置片段
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNIPPET="$SCRIPT_DIR/bashrc.snippet.sh"
 if [ -f "$SNIPPET" ]; then
     MARKER_BEGIN="# >>> guoda optimization begin >>>"

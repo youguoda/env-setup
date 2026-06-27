@@ -24,32 +24,18 @@
 
 set -uo pipefail
 
-# === 颜色 ===
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# === 共享库(颜色 / 日志 / track_error / test_github / proxy_fetch）===
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
-log_info()  { echo -e "${GREEN}  ✓${NC} $1"; }
-log_warn()  { echo -e "${YELLOW}  ⚠${NC} $1"; }
-log_error() { echo -e "${RED}  ✗${NC} $1"; }
-log_step()  { echo -e "\n${BLUE}${BOLD}=== $1 ===${NC}"; }
-log_note()  { echo -e "${CYAN}  ℹ${NC} $1"; }
-
-# === 错误追踪 ===
+# === 状态 ===
 ERRORS=()
 SKIP_APT_MIRROR=false
 SKIP_SYSTEM_UPDATE=false
 SKIP_NODE=false
 SKIP_WSL_CONF=false
 SKIP_BASHRC=false
-
-track_error() {
-    ERRORS+=("$1")
-    log_error "$1"
-}
 
 # === 解析参数 ===
 parse_args() {
@@ -135,7 +121,7 @@ setup_apt_mirror() {
         return
     fi
 
-    sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak.$(date +%s) 2>/dev/null
+    sudo cp /etc/apt/sources.list "/etc/apt/sources.list.bak.$(date +%s)" 2>/dev/null
     sudo sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
     sudo sed -i 's|http://security.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
     sudo sed -i 's|http://[a-z]*.archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
@@ -177,25 +163,7 @@ install_modern_tools() {
 
     mkdir -p ~/.local/bin
 
-    # 检测 github 连通性
-    test_github() {
-        curl -sI --max-time 5 https://github.com > /dev/null 2>&1 && return 0 || return 1
-    }
-
-    # 通过代理下载
-    proxy_fetch() {
-        local url=$1 output=$2
-        if test_github; then
-            curl -fL --max-time 60 "$url" -o "$output" 2>/dev/null && return 0
-        fi
-        for proxy in "https://ghproxy.com/" "https://gh-proxy.com/" "https://mirror.ghproxy.com/"; do
-            if curl -fL --max-time 60 "${proxy}${url}" -o "$output" 2>/dev/null; then
-                return 0
-            fi
-        done
-        return 1
-    }
-
+    # test_github / proxy_fetch 来自 lib.sh
     test_github && log_note "github 直连可用" || log_note "github 直连不通，将使用代理"
 
     # --- zoxide ---
@@ -283,7 +251,7 @@ install_node() {
     # 安装 nvm
     if [ -d ~/.nvm ]; then
         log_info "nvm 已存在，更新..."
-        cd ~/.nvm && git pull -q 2>/dev/null && cd ~
+        ( cd ~/.nvm && git pull -q 2>/dev/null )
     else
         log_note "克隆 nvm（gitee 镜像）..."
         if git clone https://gitee.com/mirrors/nvm.git ~/.nvm 2>/dev/null; then
@@ -295,10 +263,10 @@ install_node() {
     fi
 
     # 切换到最新 tag
-    cd ~/.nvm
+    cd ~/.nvm || return
     LATEST_TAG=$(git describe --abbrev=0 --tags --match "v[0-9]*" 2>/dev/null)
     [ -n "$LATEST_TAG" ] && git checkout "$LATEST_TAG" -q 2>/dev/null
-    cd ~
+    cd ~ || return
 
     # 加载 nvm
     export NVM_DIR="$HOME/.nvm"
@@ -348,8 +316,27 @@ setup_bashrc() {
         return
     fi
 
+    # 部署公共别名到 home（snippet 会 source 它，与仓库解耦）
+    if [ -f "$SCRIPT_DIR/aliases.common.sh" ]; then
+        mkdir -p ~/.config/guoda
+        cp "$SCRIPT_DIR/aliases.common.sh" ~/.config/guoda/aliases.sh
+        log_note "公共别名已部署到 ~/.config/guoda/aliases.sh"
+    else
+        track_error "找不到 $SCRIPT_DIR/aliases.common.sh"
+    fi
+
     # 自动检测 Windows 用户名，替换 snippet 中的占位符
-    WIN_USER=$(ls /mnt/c/Users 2>/dev/null | grep -v -iE '^(Public|Default|All Users|Default User|desktop.ini|WDAGUtilityAccount)$' | head -1)
+    # 遍历 /mnt/c/Users 下的目录，跳过系统账户，取第一个真实用户
+    WIN_USER=""
+    for _d in /mnt/c/Users/*/; do
+        _name=$(basename "$_d")
+        case "$_name" in
+            Public|Default|"All Users"|"Default User"|desktop.ini|WDAGUtilityAccount) continue ;;
+        esac
+        WIN_USER="$_name"
+        break
+    done
+    unset _d _name
 
     # 临时 snippet（替换 Windows 用户名）
     TMP_SNIPPET="/tmp/bashrc.snippet.$$.sh"
@@ -492,7 +479,7 @@ main() {
     install_modern_tools
     install_node
     setup_bashrc
-    setup_wsl_conf
+    setup_wslconf
     fix_systemd
     verify
     summary
