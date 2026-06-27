@@ -1,0 +1,56 @@
+# guoda-starship.toml - myenv 子 shell 的提示符配置
+# 路径: ~/.guoda/starship.toml
+#
+# 设计原则:
+#   1. 不依赖 Nerd Font(任何终端都能正常显示)
+#   2. 提示符最前面的 [myenv] 是关键标识
+#   3. 显示当前 conda 环境 + git 状态 + 目录
+
+# 一行格式:[myenv] (conda-env) ~/path (git-branch) ❯
+format = """
+[myenv](bold cyan) \
+${env_var.GUODA_CONDA_INFO}\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$cmd_duration\
+$line_break\
+$character"""
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[✗](bold red)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+read_only = " 🔒"
+style = "bold blue"
+
+[git_branch]
+symbol = "🌿 "
+style = "purple"
+
+[git_status]
+style = "yellow"
+ahead = "↑${count}"
+behind = "↓${count}"
+diverged = "↕ ↑${ahead_count} ↓${behind_count}"
+modified = "!${count}"
+staged = "+${count}"
+untracked = "?${count}"
+
+[python]
+symbol = "🐍 "
+format = '[${symbol}${pyenv_prefix}(${version})(\($virtualenv\)) ]($style)'
+style = "green"
+
+[cmd_duration]
+min_time = 2_000
+format = "took [$duration](bold yellow) "
+show_milliseconds = false
+
+# 自定义模块:显示 conda 环境(通过自定义命令)
+# 这部分简化处理:让 conda 自己的 activate 钩子来管理显示
+# 如果你想要 conda 环境名出现在提示符,在 conda activate 后会自动有 (env_name) 前缀

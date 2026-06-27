@@ -1,0 +1,33 @@
+#!/bin/bash
+# myenv - 进入 guoda 的个人配置环境(子 shell)
+# 安装位置: /usr/local/bin/myenv
+#
+# 工作原理:
+#   启动一个子 shell(bash --rcfile),加载 ~/.guoda/bashrc.sh
+#   - 系统 ~/.bashrc 和 /etc/bash.bashrc 不受影响
+#   - 别人 ssh 进 root 看不到你的子 shell
+#   - exit 退出子 shell,配置自动还原
+#
+# 用法:
+#   $ myenv           # 进入个人环境
+#   (myenv) $ ...     # 干活
+#   (myenv) $ exit    # 退出,回到默认 root 环境
+
+# 找配置文件
+GUODA_RC="$HOME/.guoda/bashrc.sh"
+
+if [ ! -f "$GUODA_RC" ]; then
+    echo "✗ 未找到 $GUODA_RC"
+    echo "  请先运行: bash setup-myenv.sh"
+    exit 1
+fi
+
+# 传递参数:支持 myenv -c "command"(跑完即退出)
+# 也支持 myenv(交互式)
+if [ $# -gt 0 ]; then
+    # 非交互:执行完命令就退出
+    exec bash --rcfile "$GUODA_RC" -i -c "$*"
+else
+    # 交互式子 shell
+    exec bash --rcfile "$GUODA_RC" -i
+fi

@@ -8,18 +8,27 @@
 
 ## 📖 项目简介
 
-这个项目记录了 **2026-06-27 一次完整的环境治理过程**，包括：
+这个项目记录了 **2026-06-27 一次完整的环境治理过程**，并扩展到**共享 GPU 服务器工作环境**，包括：
 
+### 🖥️ 个人机器（Windows + WSL2）
 - 🧹 C 盘深度瘦身（**释放 82 GB**，7.56 GB → 90 GB）
 - 🚚 WSL2 数据迁移到 G 盘（**节省 56 GB** C 盘空间）
 - 🏥 WSL 健康检查与问题修复
 - 🚀 WSL 性能优化与开发工具链配置
 
-**所有步骤可重复执行**，新机器上按照文档走一遍即可恢复整套环境。
+### 🗄️ 共享 GPU 服务器（公司/实验室）
+- 🐳 Docker 推理服务规范（vLLM 模板）
+- 📊 模型评测流程（lm-eval-harness 模板）
+- 🤗 HuggingFace 缓存管理（100GB 配额下的生存指南）
+- 🚀 服务器一键还原（10 分钟拉起整套工作环境）
+
+**所有步骤可重复执行**，无论是个人 WSL 还是公司服务器，新机器上按照文档走一遍即可恢复整套环境。
 
 ---
 
 ## 📚 文档导航
+
+### 🖥️ WSL / 个人机器（01-05）
 
 | 文档 | 内容 | 推荐场景 |
 |---|---|---|
@@ -27,7 +36,18 @@
 | [02-wsl-migration.md](docs/02-wsl-migration.md) | WSL2 迁移到其他盘 | C 盘被 vhdx 占满 |
 | [03-wsl-health-check.md](docs/03-wsl-health-check.md) | WSL 健康检查清单 | 定期体检 |
 | [04-optimization.md](docs/04-optimization.md) | 性能优化与工具链 | 新装 WSL 必看 |
-| [05-restore.md](docs/05-restore.md) | ⭐ 一键还原脚本详解 | **新机器恢复必备** |
+| [05-restore.md](docs/05-restore.md) | ⭐ WSL 一键还原脚本 | **WSL 新机器恢复必备** |
+
+### 🗄️ 共享 GPU 服务器（06）
+
+| 文档 | 内容 | 推荐场景 |
+|---|---|---|
+| [06-server-setup.md](docs/06-server-setup.md) | ⭐ **大模型测试开发服务器环境** | **登录新 GPU 服务器必看** |
+
+### 📚 通用参考
+
+| 文档 | 内容 | 推荐场景 |
+|---|---|---|
 | [cheatsheet.md](docs/cheatsheet.md) | 工具速查表 | 日常查阅 |
 | [troubleshooting.md](docs/troubleshooting.md) | 故障排查 FAQ | 遇到问题先看这里 |
 
@@ -37,28 +57,43 @@
 
 ```
 env-setup/
-├── README.md                  # 当前文件
-├── docs/                      # 详细文档
-│   ├── 01-c-drive-cleanup.md
-│   ├── 02-wsl-migration.md
-│   ├── 03-wsl-health-check.md
-│   ├── 04-optimization.md
-│   ├── cheatsheet.md
-│   └── troubleshooting.md
-├── scripts/                   # 可直接执行的脚本
-│   ├── restore.sh             # ⭐ 一键还原整个环境（新机器必备）
-│   ├── clean_c.ps1            # C 盘清理（PowerShell）
-│   ├── migrate_wsl.ps1        # WSL 迁移（PowerShell）
-│   ├── wsl_health.sh          # WSL 健康检查（Bash）
-│   ├── install_tools.sh       # 工具链安装（Bash）
-│   ├── wslconfig.template     # .wslconfig 模板
-│   └── bashrc.snippet.sh      # .bashrc 优化片段
-└── backups/                   # 个人备份目录（按需使用）
+├── README.md                       # 当前文件
+├── docs/                           # 详细文档
+│   ├── 01-c-drive-cleanup.md       # C 盘瘦身（WSL）
+│   ├── 02-wsl-migration.md         # WSL 迁移（WSL）
+│   ├── 03-wsl-health-check.md      # WSL 健康检查（WSL）
+│   ├── 04-optimization.md          # WSL 工具链优化（WSL）
+│   ├── 05-restore.md               # WSL 一键还原详解（WSL）
+│   ├── 06-server-setup.md          # ⭐ 共享 GPU 服务器工作环境（myenv 隔离方案）
+│   ├── cheatsheet.md               # 工具速查表（通用）
+│   └── troubleshooting.md          # 故障排查（通用）
+├── scripts/                        # 可直接执行的脚本
+│   # --- WSL 个人机器（永久配置）---
+│   ├── restore.sh                  # ⭐ WSL 一键还原
+│   ├── install_tools.sh            # WSL 工具链安装（restore.sh 子集）
+│   ├── wslconfig.template          # .wslconfig 模板
+│   ├── bashrc.snippet.sh           # WSL 版 .bashrc 片段
+│   ├── wsl_health.sh               # WSL 健康检查
+│   ├── clean_c.ps1                 # C 盘清理（PowerShell）
+│   ├── migrate_wsl.ps1             # WSL 迁移（PowerShell）
+│   # --- 共享 GPU 服务器（myenv 隔离方案）---
+│   ├── setup-myenv.sh              # ⭐ 一次性安装（工具永久装，配置走子 shell）
+│   ├── myenv                       # /usr/local/bin/myenv 内容（进子 shell）
+│   ├── myenv-clean                 # /usr/local/bin/myenv-clean 内容（清理容器）
+│   ├── guoda-bashrc.sh             # ~/.guoda/bashrc.sh（子 shell 配置）
+│   ├── guoda-env.sh                # ~/.guoda/env.sh（环境变量）
+│   ├── guoda-starship.toml         # ~/.guoda/starship.toml（提示符）
+│   # --- LLM 工作流模板（WSL + 服务器通用）---
+│   ├── vllm-run.template.sh        # vLLM 启动脚本模板
+│   └── eval-run.template.sh        # lm-eval 评测脚本模板
+└── backups/                        # 个人备份目录（按需使用）
 ```
 
 ---
 
 ## ⚡ 快速命令
+
+### 🖥️ WSL（个人机器）
 
 ```bash
 # 🚀 新机器一键还原（推荐）
@@ -72,6 +107,21 @@ bash scripts/install_tools.sh
 
 # 查看常用命令速查
 cat docs/cheatsheet.md
+```
+
+### 🗄️ GPU 服务器（公司/实验室，共用 root）
+
+```bash
+# 🚀 首次安装：工具永久装，配置走 ~/.guoda/ 隔离
+bash scripts/setup-myenv.sh
+
+# 装完即可用：
+myenv             # 进入自己的环境（子 shell）
+exit              # 退出，配置自动还原
+myenv-clean       # 一键清理自己跑的容器
+
+# 想要 Node.js（默认不装）
+bash scripts/setup-myenv.sh --install-node
 ```
 
 ---
@@ -126,3 +176,5 @@ wsl --shutdown
 | 日期 | 操作 | 备注 |
 |---|---|---|
 | 2026-06-27 | 初始化 | C 盘瘦身 + WSL 迁移 + 工具链配置 |
+| 2026-06-27 | 扩展服务器场景 | 加入 GPU 服务器一键还原 + vLLM/评测模板 |
+| 2026-06-27 | 重构服务器方案 | 改用「子 shell 隔离」：工具永久装 + `myenv` 进子 shell + `myenv-clean` 清理；加入 Yazi 文件管理器；废弃 `restore-server.sh` 和 `server-bashrc.snippet.sh` |
