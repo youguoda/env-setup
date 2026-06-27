@@ -1,0 +1,15 @@
+# 备份目录（按需保留本地）
+backups/*.tar
+backups/*.tar.gz
+backups/*.vhdx
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器临时文件
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

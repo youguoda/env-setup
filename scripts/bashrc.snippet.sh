@@ -23,7 +23,7 @@ alias ls='eza --icons --group-directories-first'
 alias ll='eza -la --icons --group-directories-first --git'
 alias la='eza -a --icons --group-directories-first'
 alias lt='eza --tree --icons --level=2'
-alias ltl='eza --tree --icons --level=3 -L'
+alias ltl='eza --tree --icons --level=3'
 
 # cat 替换为 bat（带语法高亮）
 alias cat='batcat -pp'
