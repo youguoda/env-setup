@@ -258,6 +258,43 @@ install_modern_tools() {
             track_error "eza 版本号获取失败"
         fi
     fi
+
+    # --- ble.sh(fish 风格的自动建议 + 增强补全 + 语法高亮)---
+    if [ -f ~/.local/share/blesh/ble.sh ]; then
+        log_info "ble.sh 已存在"
+    else
+        log_note "安装 ble.sh(给 bash 加 fish 体验)..."
+        # 方式 1:源码编译(需要 make + gcc,build-essential 已装)
+        if git clone --recursive --depth 1 --shallow-submodules \
+                https://github.com/akinomyoga/ble.sh.git /tmp/blesh-$$ 2>/dev/null; then
+            if (cd /tmp/blesh-$$ && make install PREFIX="$HOME/.local" > /dev/null 2>&1); then
+                log_info "ble.sh 安装完成(源码编译)"
+            else
+                # 编译失败,降级到 nightly tarball
+                URL="https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz"
+                if proxy_fetch "$URL" /tmp/ble.tar.xz; then
+                    mkdir -p "$HOME/.local/share/blesh"
+                    tar xf /tmp/ble.tar.xz -C "$HOME/.local/share/blesh/" --strip-components=1
+                    rm /tmp/ble.tar.xz
+                    log_info "ble.sh 安装完成(nightly tarball)"
+                else
+                    track_error "ble.sh 安装失败(编译和下载都失败)"
+                fi
+            fi
+            rm -rf /tmp/blesh-$$
+        else
+            # github 不通,直接走 proxy_fetch 下 nightly
+            URL="https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz"
+            if proxy_fetch "$URL" /tmp/ble.tar.xz; then
+                mkdir -p "$HOME/.local/share/blesh"
+                tar xf /tmp/ble.tar.xz -C "$HOME/.local/share/blesh/" --strip-components=1
+                rm /tmp/ble.tar.xz
+                log_info "ble.sh 安装完成(nightly tarball)"
+            else
+                track_error "ble.sh 安装失败(github 不通)"
+            fi
+        fi
+    fi
 }
 
 # === 步骤 3.5:Yazi 文件管理器 ===
@@ -571,6 +608,10 @@ verify_and_summary() {
 
     if [ -x ~/.fzf/bin/fzf ]; then
         printf "  %-14s %-25s %s\n" "fzf" "$(~/.fzf/bin/fzf --version 2>&1 | head -1 | cut -c1-30)" "✓"
+    fi
+
+    if [ -f ~/.local/share/blesh/ble.sh ]; then
+        printf "  %-14s %-25s %s\n" "ble.sh" "$HOME/.local/share/blesh" "✓"
     fi
 
     if command -v docker > /dev/null 2>&1; then

@@ -7,6 +7,14 @@
 #   2. 再 source 公共别名 + 追加服务器专属
 #   3. 完全独立,不影响系统 ~/.bashrc
 
+# === 0. ble.sh 提前加载(必须最先,用 --noattach 延迟 attach)===
+# ble.sh 给 bash 加 fish 风格的:
+#   - 灰色自动建议(按 → 或 Ctrl+F 接受)
+#   - 菜单式 Tab 补全(方向键选择)
+#   - 语法高亮(命令存在显示绿色,错误红色)
+#   - 历史中已有命令的智能补全
+[[ $- == *i* ]] && [ -f ~/.local/share/blesh/ble.sh ] && source ~/.local/share/blesh/ble.sh --noattach
+
 # === 1. 基础:加载系统默认配置 + 用户的 ~/.bashrc ===
 [ -f /etc/bash.bashrc ] && source /etc/bash.bashrc
 [ -f ~/.bashrc ] && source ~/.bashrc
@@ -222,3 +230,7 @@ drun() {
 # === 7. 启动提示(告诉用户当前在 myenv)===
 echo -e "\033[0;36m[myenv]\033[0m 已加载 guoda 环境(zoxide/eza/fzf/bat/yazi/conda/docker 别名)"
 echo -e "  退出: \033[1;33mexit\033[0m | 清理: \033[1;33mmyenv-clean\033[0m | 文件管理器: \033[1;33my\033[0m | 进容器: \033[1;33mdexec <name>\033[0m"
+
+# === 8. ble.sh attach(必须最后,启动自动建议/补全)===
+# 前面所有配置加载完后,再激活 ble.sh 的 fish 风格体验
+[[ ${BLE_VERSION-} ]] && ble-attach
