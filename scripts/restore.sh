@@ -89,8 +89,13 @@ check_env() {
     CURRENT_USER=$(whoami)
     if [ "$CURRENT_USER" = "root" ]; then
         log_warn "当前是 root，建议以普通用户运行（脚本会用 sudo 提权）"
-        log_warn "继续？(Ctrl+C 取消，回车继续)"
-        read
+        # 仅在交互终端下停下来确认;非交互(CI/自动化)默认继续,避免永久阻塞
+        if [ -t 0 ]; then
+            log_warn "继续？(Ctrl+C 取消，回车继续)"
+            read -r
+        else
+            log_note "非交互环境,默认继续"
+        fi
     fi
 
     log_info "环境: $(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2)"
