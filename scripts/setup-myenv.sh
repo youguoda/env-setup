@@ -476,14 +476,18 @@ setup_docker_mirror() {
         return
     fi
 
-    if grep -q "mirrors.ustc.edu.cn" /etc/docker/daemon.json 2>/dev/null; then
+    local daemon_json="/etc/docker/daemon.json"
+
+    if grep -q "mirrors.ustc.edu.cn" "$daemon_json" 2>/dev/null; then
         log_info "Docker 镜像源已配置"
         return
     fi
 
     sudo mkdir -p /etc/docker
-    sudo tee /etc/docker/daemon.json > /dev/null <<'EOF'
-{
+
+    # 我们想补进去的默认项(镜像源 + 日志滚动)
+    local desired
+    desired='{
     "registry-mirrors": [
         "https://docker.mirrors.ustc.edu.cn",
         "https://hub-mirror.c.163.com"
@@ -493,9 +497,43 @@ setup_docker_mirror() {
         "max-size": "100m",
         "max-file": "3"
     }
-}
-EOF
-    log_info "Docker 镜像源已配置"
+}'
+
+    # 共享服务器上 daemon.json 是全局配置,可能已含关键项(如 default-runtime: nvidia)
+    # 绝不能直接覆盖,否则会冲掉别人的 GPU runtime 配置。这里做安全合并:只补缺,不夺权。
+    if [ -s "$daemon_json" ]; then
+        if ! command -v jq > /dev/null 2>&1; then
+            log_warn "检测到已有 $daemon_json,但未装 jq,无法安全合并"
+            log_warn "为避免覆盖管理员配置(如 nvidia runtime),已跳过 Docker 镜像源设置"
+            log_note "解决:先 apt install jq 再重跑,或手动把 registry-mirrors 加进去"
+            return
+        fi
+
+        if ! sudo jq empty "$daemon_json" > /dev/null 2>&1; then
+            log_warn "$daemon_json 不是合法 JSON,跳过以免破坏,请手动检查"
+            return
+        fi
+
+        local bak
+        bak="${daemon_json}.bak.$(date +%s)"
+        sudo cp "$daemon_json" "$bak"
+        log_note "已备份现有配置到 $bak"
+
+        # 现有配置优先(.[1] 覆盖 .[0]):default-runtime / runtimes / 已有 registry-mirrors 全部保留
+        # 只有现有配置里没有的键(如镜像源、log-opts)才会用我们的默认值补上
+        local merged
+        if merged=$(printf '%s' "$desired" | sudo jq -s '.[0] * .[1]' - "$daemon_json" 2>/dev/null); then
+            printf '%s\n' "$merged" | sudo tee "$daemon_json" > /dev/null
+            log_info "Docker 镜像源已合并进现有配置(保留 default-runtime 等原有项)"
+        else
+            log_warn "合并失败,已保持原配置不动(备份在 $bak)"
+            return
+        fi
+    else
+        # 没有现成配置,直接写入是安全的
+        printf '%s\n' "$desired" | sudo tee "$daemon_json" > /dev/null
+        log_info "Docker 镜像源已配置"
+    fi
 
     if sudo systemctl restart docker 2>/dev/null; then
         log_info "Docker 已重启"
