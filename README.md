@@ -68,6 +68,8 @@ env-setup/
 │   ├── cheatsheet.md               # 工具速查表（通用）
 │   └── troubleshooting.md          # 故障排查（通用）
 ├── scripts/                        # 可直接执行的脚本
+│   # --- 卸载/还原（WSL + 服务器通用）---
+│   ├── uninstall.sh                # ⭐ 一键卸载：清理配置与工具，回到初始状态
 │   # --- WSL 个人机器（永久配置）---
 │   ├── restore.sh                  # ⭐ WSL 一键还原
 │   ├── install_tools.sh            # WSL 工具链安装（restore.sh 子集）
@@ -122,6 +124,20 @@ myenv-clean       # 一键清理自己跑的容器
 
 # 想要 Node.js（默认不装）
 bash scripts/setup-myenv.sh --install-node
+```
+
+### 🧹 卸载 / 还原到初始状态（WSL + 服务器通用）
+
+```bash
+# 先预览会删什么（强烈建议先跑这个，什么都不会改）
+bash scripts/uninstall.sh --dry-run
+
+# 交互式卸载：只清理本项目装的配置与工具
+# 默认【不动】你的数据(~/models ~/projects ~/data ~/logs)、apt 系统包、备份
+bash scripts/uninstall.sh
+
+# 连数据目录一起删（危险，会二次确认）
+bash scripts/uninstall.sh --purge-data
 ```
 
 ---
