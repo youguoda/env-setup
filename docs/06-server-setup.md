@@ -235,23 +235,28 @@ $                     # 回到公共 root 环境
 
 ## 🐳 四、Docker 使用规范
 
-### 容器命名(强制)
+### 容器归属(owner label + 身份前缀)
 
-所有自己起的容器加 **`guoda-`** 前缀,这是这套方案的**铁律**——`myenv-clean` 就靠这个前缀识别哪些是你的。
+共用 root 场景下,「哪些容器是我的」靠身份变量 `MYENV_USER`(默认 `guoda`,由 `~/.guoda/env.sh` 设置)统一标记:
+
+- `drun` / `drun-corex` / `drun-tencent` 和 `run-vllm.sh` 起的容器都会:
+  - 自动打上 **`--label owner=$MYENV_USER`**(归属,最可靠的识别口径)
+  - 自动加 **`$MYENV_USER-` 名字前缀**(防止和同事容器撞名)
 
 ```bash
-# ✅ 推荐
-docker run --name guoda-vllm-qwen2-7b ...
-
-# ❌ 避免
-docker run --name vllm ...        # 别人也可能起这个名字
-docker run ...                    # 不命名,后期难管理
+# drun-corex corex_test  →  实际容器名 guoda-corex_test, 带 owner=guoda label
+(myenv) $ drun-corex corex_test
+✓ 容器 guoda-corex_test 已启动(owner=guoda)
+  进入: dexec guoda-corex_test
 ```
+
+> 想临时换身份(比如替别人跑一批):`MYENV_USER=alice myenv`,之后起的容器就归 alice。
 
 ### 看自己跑的容器
 
 ```bash
-(myenv) $ mydocker               # 只看 guoda-* 容器
+(myenv) $ mydocker               # 按 owner=$MYENV_USER label 过滤,只看自己的
+(myenv) $ mydocker alice         # 看 owner=alice 的
 (myenv) $ dps                    # 简化版 docker ps
 (myenv) $ dpsi                   # 含已停止的
 ```
@@ -260,17 +265,22 @@ docker run ...                    # 不命名,后期难管理
 
 ```bash
 (myenv) $ myenv-clean            # 交互式清理
-🧹 myenv-clean 开始清理(prefix=guoda)
+🧹 myenv-clean 开始清理(owner=guoda)
 📦 停掉以下容器:
   - guoda-vllm-qwen2-7b
   - guoda-eval-runner
    继续吗? [y/N] y
 ✓ 容器已清理
-✓ 没有 dangling 镜像
 ...
 ```
 
-`myenv-clean` **只动 `guoda-` 前缀**的容器,别人的容器一字不改。
+清理容器时 **只动 `owner=$MYENV_USER` 的容器**(兼容老的 `$MYENV_USER-` 名字前缀),别人的容器一字不改。
+
+> ⚠️ 注意:镜像 / volume / builder cache 的清理是 Docker **全局操作**,无法按 owner 区分,会影响宿主上所有人。`myenv-clean` 里这几步一律改成需要手动确认、默认不动;共用 root 下请谨慎选 `y`。
+
+### 命令历史隔离
+
+`myenv` 子 shell 的 `HISTFILE` 指向 `~/.guoda/bash_history`(见 `env.sh`),所以你在 myenv 里敲的命令**不会混进 `/root/.bash_history`**,也不会被同事的历史污染。退出 myenv 后回到裸 root 就是干净的系统历史。
 
 ### 端口段
 
@@ -310,36 +320,36 @@ docker run ...                    # 不命名,后期难管理
 ### 完整工作流
 
 ```bash
-# host 上
+# host 上(注意:容器名会自动加 owner 前缀 guoda-)
 (myenv) $ drun-corex corex_test_0309
-✓ 容器 corex_test_0309 已启动
+✓ 容器 guoda-corex_test_0309 已启动(owner=guoda)
   镜像:    10.150.9.98:80/sw_test/corex_base:ubuntu22.04-py3.10
   工作目录: /data/ws
-  进入:    dexec corex_test_0309
-  停止:    docker rm -f corex_test_0309
+  进入:    dexec guoda-corex_test_0309
+  停止:    docker rm -f guoda-corex_test_0309
 
-# 进容器(替代 docker exec -it)
-(myenv) $ dexec corex_test_0309
+# 进容器(替代 docker exec -it,用上面提示的完整容器名)
+(myenv) $ dexec guoda-corex_test_0309
 [myenv] 已加载 guoda 环境                 ← 容器内也是 myenv!
-corex_test_0309 in /data/ws ❯ ls          ← eza 带图标
-corex_test_0309 in /data/ws ❯ z cuda_daily_test   ← zoxide 跳转
-corex_test_0309 ❯ y                       ← yazi 文件管理器
-corex_test_0309 ❯ Ctrl+R                  ← fzf 历史搜索
-corex_test_0309 ❯ exit                    ← 退出容器,回到 host myenv
+guoda-corex_test_0309 ❯ ls                ← eza 带图标
+guoda-corex_test_0309 ❯ z cuda_daily_test ← zoxide 跳转
+guoda-corex_test_0309 ❯ y                 ← yazi 文件管理器
+guoda-corex_test_0309 ❯ Ctrl+R            ← fzf 历史搜索
+guoda-corex_test_0309 ❯ exit              ← 退出容器,回到 host myenv
 (myenv) $                                 ← host 还在 myenv
 ```
 
 ### 如果想用别的镜像
 
 ```bash
-# 换 Python 版本
+# 换 Python 版本(容器名 → guoda-test_py311)
 drun-corex test_py311 10.150.9.98:80/sw_test/corex_base:ubuntu22.04-py3.11
 
-# 用通用 drun,自定义 workdir 和额外挂载
+# 用通用 drun,自定义 workdir 和额外挂载(容器名 → guoda-mytest)
 drun mytest vllm/vllm-openai:latest /workspace --volume /etc/passwd:/etc/passwd:ro
 
-# 启动后还是用 dexec 进
-dexec mytest
+# 启动后用 dexec 进(带前缀)
+dexec guoda-mytest
 ```
 
 ### 已有容器怎么补挂载?
@@ -477,7 +487,7 @@ PORT=18001
 ## 🛡️ 十一、不影响别人的几条铁律
 
 1. **永远不改 `~/.bashrc`、`/etc/profile`、`/etc/bash.bashrc`**——所有自己的东西放 `~/.guoda/`
-2. **Docker 容器加 `guoda-` 前缀**——方便 `myenv-clean` 识别,也方便团队看到「这是 guoda 跑的」
+2. **Docker 容器用 `drun*` / `run-vllm.sh` 启动**——会自动打 `owner=$MYENV_USER` label + `$MYENV_USER-` 前缀,`myenv-clean` 靠 label 精准识别,也方便团队看到「这是谁跑的」
 3. **端口用 18000-18999 段**——避免和系统服务撞
 4. **不在 `/tmp` 放大文件**——`/tmp` 是共享的,放模型会被人删
 5. **Docker 不用 `latest` 标签**(尽量用具体版本)——避免镜像被覆盖后别人的脚本失效

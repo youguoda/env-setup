@@ -10,6 +10,16 @@ export PATH="$HOME/.local/bin:$HOME/.fzf/bin:$HOME/miniconda3/bin:$PATH"
 export GUODA_ENV=1
 export MYENV_ACTIVE=1
 
+# === 身份标识(共用 root 场景:用于容器归属 owner 标签 + 命名空间,默认 guoda)===
+# 想临时换身份:MYENV_USER=xxx myenv
+export MYENV_USER="${MYENV_USER:-guoda}"
+
+# === 命令历史隔离(共用 root:别把自己的历史混进 /root/.bash_history,也别读别人的)===
+export HISTFILE="$HOME/.guoda/bash_history"
+export HISTSIZE=10000
+export HISTFILESIZE=20000
+export HISTCONTROL=ignoreboth
+
 # === HuggingFace(关键!避免爆 ~/.cache)===
 export HF_HOME="$HOME/models"
 export HF_HUB_CACHE="$HF_HOME/hub"

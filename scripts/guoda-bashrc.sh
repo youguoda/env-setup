@@ -85,10 +85,11 @@ dsh() {
     docker exec -it "$container" bash 2>/dev/null || docker exec -it "$container" sh
 }
 
-# 看自己跑的容器(按名字前缀过滤)
+# 看自己跑的容器(按 owner label 过滤,共用 root 下只显示自己的)
+# 用法: mydocker [owner]  默认 owner=$MYENV_USER
 mydocker() {
-    local prefix="${1:-guoda}"
-    docker ps -a --filter "name=${prefix}-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    local owner="${1:-${MYENV_USER:-guoda}}"
+    docker ps -a --filter "label=owner=${owner}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 }
 
 # === Docker 容器内使用 myenv(关键!)===
@@ -122,14 +123,17 @@ drun-corex() {
     local name="${1:?用法: drun-corex <name> [image] [workdir]}"
     local image="${2:-10.150.9.98:80/sw_test/corex_base:ubuntu22.04-py3.10}"
     local workdir="${3:-/data/ws}"
+    local owner="${MYENV_USER:-guoda}"
+    local cname="${owner}-${name}"   # 加身份前缀,和同事容器不撞名
 
-    if docker ps -a --format '{{.Names}}' | grep -qx "$name"; then
-        echo "⚠ 容器 $name 已存在,直接 dexec 进入"
-        echo "  如要重建: docker rm -f $name && drun-corex ..."
+    if docker ps -a --format '{{.Names}}' | grep -qx "$cname"; then
+        echo "⚠ 容器 $cname 已存在,直接 dexec 进入"
+        echo "  如要重建: docker rm -f $cname && drun-corex ..."
         return 1
     fi
 
-    docker run --name="$name" \
+    docker run --name="$cname" \
+        --label "owner=${owner}" \
         --ipc host --pid host \
         --volume /usr/src:/usr/src \
         --volume /lib/modules:/lib/modules \
@@ -150,11 +154,11 @@ drun-corex() {
         /bin/bash
 
     echo ""
-    echo "✓ 容器 $name 已启动"
+    echo "✓ 容器 $cname 已启动(owner=$owner)"
     echo "  镜像:    $image"
     echo "  工作目录: $workdir"
-    echo "  进入:    dexec $name"
-    echo "  停止:    docker rm -f $name"
+    echo "  进入:    dexec $cname"
+    echo "  停止:    docker rm -f $cname"
 }
 
 # 启动特权测试容器(tencentLLM 模板,带 /stores 挂载)
@@ -163,14 +167,17 @@ drun-tencent() {
     local name="${1:?用法: drun-tencent <name> [image] [workdir]}"
     local image="${2:-corex:4.5.0_sp_0402}"
     local workdir="${3:-/data/ws/guoda/cuda_daily_test}"
+    local owner="${MYENV_USER:-guoda}"
+    local cname="${owner}-${name}"   # 加身份前缀,和同事容器不撞名
 
-    if docker ps -a --format '{{.Names}}' | grep -qx "$name"; then
-        echo "⚠ 容器 $name 已存在,直接 dexec 进入"
-        echo "  如要重建: docker rm -f $name && drun-tencent ..."
+    if docker ps -a --format '{{.Names}}' | grep -qx "$cname"; then
+        echo "⚠ 容器 $cname 已存在,直接 dexec 进入"
+        echo "  如要重建: docker rm -f $cname && drun-tencent ..."
         return 1
     fi
 
-    docker run --name="$name" \
+    docker run --name="$cname" \
+        --label "owner=${owner}" \
         --ipc host --pid host \
         --volume /usr/src:/usr/src \
         --volume /lib/modules:/lib/modules \
@@ -192,11 +199,11 @@ drun-tencent() {
         /bin/bash
 
     echo ""
-    echo "✓ 容器 $name 已启动"
+    echo "✓ 容器 $cname 已启动(owner=$owner)"
     echo "  镜像:    $image"
     echo "  工作目录: $workdir"
-    echo "  进入:    dexec $name"
-    echo "  停止:    docker rm -f $name"
+    echo "  进入:    dexec $cname"
+    echo "  停止:    docker rm -f $cname"
 }
 
 # 通用 drun:自定义挂载 + 自动套 myenv 工具
@@ -206,8 +213,11 @@ drun() {
     local image="${2:?需要指定 image}"
     local workdir="${3:-/data/ws}"
     shift 3 2>/dev/null || shift $# 2>/dev/null
+    local owner="${MYENV_USER:-guoda}"
+    local cname="${owner}-${name}"   # 加身份前缀,和同事容器不撞名
 
-    docker run --name="$name" \
+    docker run --name="$cname" \
+        --label "owner=${owner}" \
         --ipc host --pid host \
         --volume /data:/data \
         --volume "$HOME/.guoda:/root/.guoda" \
@@ -224,7 +234,7 @@ drun() {
         "$image" \
         /bin/bash
 
-    echo "✓ 容器 $name 已启动 → dexec $name 进入"
+    echo "✓ 容器 $cname 已启动(owner=$owner) → dexec $cname 进入"
 }
 
 # === 7. 启动提示(告诉用户当前在 myenv)===

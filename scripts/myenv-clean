@@ -3,7 +3,7 @@
 # 安装位置: /usr/local/bin/myenv-clean
 #
 # 清理范围(只动你自己的资源,不影响别人):
-#   - 名字以 guoda- 开头的 docker 容器
+#   - 打了 owner=<你> label 的 docker 容器(兼容老的名字前缀 <你>-)
 #   - dangling 镜像
 #   - 已退出超过 7 天的镜像
 #   - (可选)未使用的 docker volume
@@ -23,18 +23,27 @@ RED='\033[0;31m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-PREFIX="${MYENV_PREFIX:-guoda}"
+# 身份:优先 MYENV_USER,兼容旧的 MYENV_PREFIX,默认 guoda
+OWNER="${MYENV_USER:-${MYENV_PREFIX:-guoda}}"
 
-echo -e "${CYAN}🧹 myenv-clean 开始清理(prefix=${PREFIX})${NC}"
+echo -e "${CYAN}🧹 myenv-clean 开始清理(owner=${OWNER})${NC}"
 echo ""
 
-# === 1. 停掉所有 guoda-* 容器 ===
-CONTAINERS=$(docker ps -a --filter "name=${PREFIX}-" --format "{{.Names}}" 2>/dev/null)
+# === 1. 停掉属于自己的容器 ===
+# 主口径:owner=<自己> label(最可靠,绝不误删同事容器)
+# 兼容口径:老容器没打 label,再按名字前缀 <自己>- 兜底
+# 两者取并集去重
+CONTAINERS=$(
+    {
+        docker ps -a --filter "label=owner=${OWNER}" --format "{{.Names}}" 2>/dev/null
+        docker ps -a --filter "name=${OWNER}-" --format "{{.Names}}" 2>/dev/null
+    } | sort -u | sed '/^$/d'
+)
 if [ -n "$CONTAINERS" ]; then
     echo -e "${YELLOW}📦 停掉以下容器:${NC}"
     echo "$CONTAINERS" | sed 's/^/  - /'
     echo -e "${YELLOW}   继续吗? [y/N]${NC} \c"
-    read confirm
+    read -r confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         echo "$CONTAINERS" | xargs -r docker rm -f 2>&1 | sed 's/^/  /'
         echo -e "${GREEN}  ✓ 容器已清理${NC}"
@@ -46,23 +55,32 @@ else
 fi
 echo ""
 
-# === 2. dangling 镜像(<none>:<none>)===
+# ⚠ 注意:下面第 2~5 步(镜像/volume/builder)是 Docker 全局操作,无法按 owner 区分,
+# 会影响宿主上所有人的资源。共用 root 下一律改成需要确认,默认不动。
+
+# === 2. dangling 镜像(<none>:<none>,全局)===
 DANGLING=$(docker images --filter "dangling=true" --format "{{.Repository}}:{{.Tag}} ({{.Size}})" 2>/dev/null)
 if [ -n "$DANGLING" ]; then
-    echo -e "${YELLOW}🖼 清理 dangling 镜像(<none>):${NC}"
-    docker image prune -f 2>&1 | tail -3 | sed 's/^/  /'
+    echo -e "${YELLOW}🖼 发现 dangling 镜像(<none>),清理是${RED}全局操作,会影响所有人${YELLOW} [y/N]${NC} \c"
+    read -r confirm
+    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        docker image prune -f 2>&1 | tail -3 | sed 's/^/  /'
+        echo -e "${GREEN}  ✓ dangling 镜像已清理${NC}"
+    else
+        echo -e "${CYAN}  ℹ 跳过 dangling 镜像清理${NC}"
+    fi
 else
     echo -e "${GREEN}✓ 没有 dangling 镜像${NC}"
 fi
 echo ""
 
-# === 3. 一周前的镜像(可选)===
+# === 3. 一周前的镜像(可选,全局)===
 OLD_IMAGES=$(docker images --filter "until=168h" --format "{{.Repository}}:{{.Tag}}" 2>/dev/null | grep -v "<none>" | head -5)
 if [ -n "$OLD_IMAGES" ]; then
     echo -e "${YELLOW}🖼 发现 7 天前的镜像:${NC}"
     echo "$OLD_IMAGES" | sed 's/^/  - /'
-    echo -e "${YELLOW}   清理它们?(不会动正在使用的) [y/N]${NC} \c"
-    read confirm
+    echo -e "${RED}   ⚠ 全局操作,会影响所有人${YELLOW};清理它们?(不会动正在使用的) [y/N]${NC} \c"
+    read -r confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         docker image prune -a --filter "until=168h" -f 2>&1 | tail -3 | sed 's/^/  /'
         echo -e "${GREEN}  ✓ 旧镜像已清理${NC}"
@@ -72,15 +90,15 @@ if [ -n "$OLD_IMAGES" ]; then
 fi
 echo ""
 
-# === 4. 未使用的 volume(谨慎)===
+# === 4. 未使用的 volume(谨慎,全局)===
 UNUSED_VOLS=$(docker volume ls --filter "dangling=true" --format "{{.Name}}" 2>/dev/null)
 if [ -n "$UNUSED_VOLS" ]; then
     echo -e "${RED}⚠ 发现未使用的 docker volume:${NC}"
     echo "$UNUSED_VOLS" | head -10 | sed 's/^/  - /'
     VCOUNT=$(echo "$UNUSED_VOLS" | wc -l)
     [ "$VCOUNT" -gt 10 ] && echo "  ... (共 ${VCOUNT} 个)"
-    echo -e "${RED}   ⚠ 清理 volume 会删除数据!是否清理? [y/N]${NC} \c"
-    read confirm
+    echo -e "${RED}   ⚠ 全局操作 + 会删除数据!可能删掉同事的 volume,是否清理? [y/N]${NC} \c"
+    read -r confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         docker volume prune -f 2>&1 | tail -3 | sed 's/^/  /'
         echo -e "${GREEN}  ✓ volume 已清理${NC}"
@@ -92,9 +110,9 @@ else
 fi
 echo ""
 
-# === 5. builder cache(可选)===
-echo -e "${YELLOW}🏗 清理 docker builder cache?(释放可能很大) [y/N]${NC} \c"
-read confirm
+# === 5. builder cache(可选,全局)===
+echo -e "${YELLOW}🏗 清理 docker builder cache?${RED}全局操作,会清掉所有人的构建缓存${YELLOW}(释放可能很大) [y/N]${NC} \c"
+read -r confirm
 if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
     docker builder prune -f 2>&1 | tail -3 | sed 's/^/  /'
     echo -e "${GREEN}  ✓ builder cache 已清理${NC}"

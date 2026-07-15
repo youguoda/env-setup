@@ -24,7 +24,9 @@ set -euo pipefail
 DOCKER_IMAGE="vllm/vllm-openai:latest"
 GPU_UTIL=0.9
 SHM_SIZE="8g"
-CONTAINER_PREFIX="guoda-vllm"
+# 身份:共用 root 下用于容器命名 + owner 归属(与 myenv/myenv-clean 一致)
+MYENV_USER="${MYENV_USER:-guoda}"
+CONTAINER_PREFIX="${CONTAINER_PREFIX:-${MYENV_USER}-vllm}"
 LOG_DIR="${HOME}/logs"
 
 # === 解析参数 ===
@@ -105,6 +107,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动 $CONTAINER" >> "$LOG_FILE"
 
 docker run -d \
     --name "$CONTAINER" \
+    --label "owner=${MYENV_USER}" \
     --gpus all \
     --ipc=host \
     --shm-size "$SHM_SIZE" \
