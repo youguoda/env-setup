@@ -35,7 +35,6 @@ SKIP_SYSTEM_UPDATE=false
 SKIP_NODE=true       # 默认不装 Node(服务器场景一般不需要)
 SKIP_CONDA=false
 SKIP_YAZI=false
-SKIP_DOCKER_MIRROR=true   # 默认不碰全局 Docker 配置(共享服务器上改 daemon.json + 重启会影响别人)
 
 CURRENT_USER=$(whoami)
 
@@ -48,8 +47,6 @@ parse_args() {
             --install-node)        SKIP_NODE=false ;;
             --skip-conda)          SKIP_CONDA=true ;;
             --skip-yazi)           SKIP_YAZI=true ;;
-            --setup-docker-mirror) SKIP_DOCKER_MIRROR=false ;;
-            --skip-docker-mirror)  SKIP_DOCKER_MIRROR=true ;;
             -h|--help)
                 cat <<EOF
 setup-myenv.sh - 共享 GPU 服务器个人环境安装脚本
@@ -62,8 +59,6 @@ setup-myenv.sh - 共享 GPU 服务器个人环境安装脚本
   --install-node         装 Node.js(默认不装,服务器一般不需要)
   --skip-conda           跳过 Miniconda
   --skip-yazi            跳过 Yazi 文件管理器
-  --setup-docker-mirror  配置 Docker 镜像源(默认不配;会改全局 daemon.json 并重启 docker)
-  --skip-docker-mirror   跳过 Docker 镜像源配置(已是默认行为,保留兼容)
   -h, --help             显示帮助
 
 核心理念:
@@ -83,7 +78,7 @@ EOF
 
 # === 步骤 0:环境检查 ===
 check_env() {
-    log_step "步骤 0/9: 环境检查"
+    log_step "步骤 0/8: 环境检查"
 
     if [ "$(uname -s)" != "Linux" ]; then
         track_error "当前不是 Linux 环境"
@@ -123,7 +118,7 @@ check_env() {
 
 # === 步骤 1:apt 清华源 ===
 setup_apt_mirror() {
-    log_step "步骤 1/9: apt 清华源"
+    log_step "步骤 1/8: apt 清华源"
 
     if [ "$SKIP_APT_MIRROR" = true ]; then
         log_note "已跳过(--skip-apt-mirror)"
@@ -149,7 +144,7 @@ setup_apt_mirror() {
 
 # === 步骤 2:系统更新 + 基础工具 ===
 install_apt_packages() {
-    log_step "步骤 2/9: 系统更新 + 基础工具(含 Yazi 预览依赖)"
+    log_step "步骤 2/8: 系统更新 + 基础工具(含 Yazi 预览依赖)"
 
     if [ "$SKIP_SYSTEM_UPDATE" = false ]; then
         log_note "apt update..."
@@ -182,7 +177,7 @@ install_apt_packages() {
 
 # === 步骤 3:现代 CLI 工具(zoxide/starship/fzf/eza)===
 install_modern_tools() {
-    log_step "步骤 3/9: 现代工具(zoxide/starship/fzf/eza)"
+    log_step "步骤 3/8: 现代工具(zoxide/starship/fzf/eza)"
 
     mkdir -p ~/.local/bin
 
@@ -301,7 +296,7 @@ install_modern_tools() {
 
 # === 步骤 3.5:Yazi 文件管理器 ===
 install_yazi() {
-    log_step "步骤 3.5/9: Yazi 文件管理器"
+    log_step "步骤 3.5/8: Yazi 文件管理器"
 
     if [ "$SKIP_YAZI" = true ]; then
         log_note "已跳过(--skip-yazi)"
@@ -350,7 +345,7 @@ install_yazi() {
 
 # === 步骤 4:Miniconda ===
 install_conda() {
-    log_step "步骤 4/9: Miniconda"
+    log_step "步骤 4/8: Miniconda"
 
     if [ "$SKIP_CONDA" = true ]; then
         log_note "已跳过(--skip-conda)"
@@ -391,7 +386,7 @@ EOF
 
 # === 步骤 5:Node.js(可选)===
 install_node() {
-    log_step "步骤 5/9: Node.js(可选)"
+    log_step "步骤 5/8: Node.js(可选)"
 
     if [ "$SKIP_NODE" = true ]; then
         log_note "已跳过(默认不装;加 --install-node 启用)"
@@ -445,7 +440,7 @@ install_node() {
 
 # === 步骤 6:GPU 监控 + LLM 工具 ===
 install_gpu_tools() {
-    log_step "步骤 6/9: GPU 监控工具"
+    log_step "步骤 6/8: GPU 监控工具"
 
     local pip_bin=""
     if [ -f "$HOME/miniconda3/bin/pip" ]; then
@@ -464,97 +459,9 @@ install_gpu_tools() {
     log_info "GPU 监控 + HuggingFace 工具就绪"
 }
 
-# === 步骤 7:Docker 镜像源 ===
-setup_docker_mirror() {
-    log_step "步骤 7/9: Docker 镜像源"
-
-    if [ "$SKIP_DOCKER_MIRROR" = true ]; then
-        log_note "已跳过(默认不配置;共享服务器上改全局 daemon.json 会影响别人)"
-        log_note "确实需要时加 --setup-docker-mirror 显式开启"
-        return
-    fi
-
-    if ! command -v docker > /dev/null 2>&1; then
-        log_warn "Docker 未安装,跳过"
-        return
-    fi
-
-    local daemon_json="/etc/docker/daemon.json"
-
-    if grep -q "mirrors.ustc.edu.cn" "$daemon_json" 2>/dev/null; then
-        log_info "Docker 镜像源已配置"
-        return
-    fi
-
-    sudo mkdir -p /etc/docker
-
-    # 我们想补进去的默认项(镜像源 + 日志滚动)
-    local desired
-    desired='{
-    "registry-mirrors": [
-        "https://docker.mirrors.ustc.edu.cn",
-        "https://hub-mirror.c.163.com"
-    ],
-    "log-driver": "json-file",
-    "log-opts": {
-        "max-size": "100m",
-        "max-file": "3"
-    }
-}'
-
-    # 共享服务器上 daemon.json 是全局配置,可能已含关键项(如 default-runtime: nvidia)
-    # 绝不能直接覆盖,否则会冲掉别人的 GPU runtime 配置。这里做安全合并:只补缺,不夺权。
-    if [ -s "$daemon_json" ]; then
-        if ! command -v jq > /dev/null 2>&1; then
-            log_warn "检测到已有 $daemon_json,但未装 jq,无法安全合并"
-            log_warn "为避免覆盖管理员配置(如 nvidia runtime),已跳过 Docker 镜像源设置"
-            log_note "解决:先 apt install jq 再重跑,或手动把 registry-mirrors 加进去"
-            return
-        fi
-
-        if ! sudo jq empty "$daemon_json" > /dev/null 2>&1; then
-            log_warn "$daemon_json 不是合法 JSON,跳过以免破坏,请手动检查"
-            return
-        fi
-
-        local bak
-        bak="${daemon_json}.bak.$(date +%s)"
-        sudo cp "$daemon_json" "$bak"
-        log_note "已备份现有配置到 $bak"
-
-        # 现有配置优先(.[1] 覆盖 .[0]):default-runtime / runtimes / 已有 registry-mirrors 全部保留
-        # 只有现有配置里没有的键(如镜像源、log-opts)才会用我们的默认值补上
-        local merged
-        if merged=$(printf '%s' "$desired" | sudo jq -s '.[0] * .[1]' - "$daemon_json" 2>/dev/null); then
-            printf '%s\n' "$merged" | sudo tee "$daemon_json" > /dev/null
-            log_info "Docker 镜像源已合并进现有配置(保留 default-runtime 等原有项)"
-        else
-            log_warn "合并失败,已保持原配置不动(备份在 $bak)"
-            return
-        fi
-    else
-        # 没有现成配置,直接写入是安全的
-        printf '%s\n' "$desired" | sudo tee "$daemon_json" > /dev/null
-        log_info "Docker 镜像源已配置"
-    fi
-
-    # 重启 docker 会中断宿主上所有正在运行的容器(可能打断别人/自己在跑的测试用例)
-    # 共享服务器上默认不硬重启:有容器在跑就只提示,让用户自己挑时间重启
-    local running
-    running=$(docker ps -q 2>/dev/null | wc -l)
-    if [ "$running" -gt 0 ]; then
-        log_warn "检测到 $running 个容器正在运行,已跳过自动重启 Docker(避免打断在跑的测试)"
-        log_note "配置将在下次 Docker 重启后生效;确认无影响后可手动: sudo systemctl restart docker"
-    elif sudo systemctl restart docker 2>/dev/null; then
-        log_info "Docker 已重启,配置已生效"
-    else
-        log_warn "Docker 重启失败(配置会在下次重启时生效)"
-    fi
-}
-
-# === 步骤 8:部署 ~/.guoda/ 配置 + 安装 myenv 命令 ===
+# === 步骤 7:部署 ~/.guoda/ 配置 + 安装 myenv 命令 ===
 setup_guoda_config() {
-    log_step "步骤 8/9: 部署 ~/.guoda/ 配置 + myenv 命令"
+    log_step "步骤 7/8: 部署 ~/.guoda/ 配置 + myenv 命令"
 
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -624,7 +531,7 @@ setup_guoda_config() {
 
 # === 步骤 9:验证 + 使用说明 ===
 verify_and_summary() {
-    log_step "步骤 9/9: 验证"
+    log_step "步骤 8/8: 验证"
 
     export PATH="$HOME/.local/bin:$HOME/.fzf/bin:$HOME/miniconda3/bin:$PATH"
 
@@ -729,7 +636,6 @@ main() {
     install_conda
     install_node
     install_gpu_tools
-    setup_docker_mirror
     setup_guoda_config
     verify_and_summary
 }
