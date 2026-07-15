@@ -35,7 +35,7 @@ SKIP_SYSTEM_UPDATE=false
 SKIP_NODE=true       # 默认不装 Node(服务器场景一般不需要)
 SKIP_CONDA=false
 SKIP_YAZI=false
-SKIP_DOCKER_MIRROR=false
+SKIP_DOCKER_MIRROR=true   # 默认不碰全局 Docker 配置(共享服务器上改 daemon.json + 重启会影响别人)
 
 CURRENT_USER=$(whoami)
 
@@ -48,6 +48,7 @@ parse_args() {
             --install-node)        SKIP_NODE=false ;;
             --skip-conda)          SKIP_CONDA=true ;;
             --skip-yazi)           SKIP_YAZI=true ;;
+            --setup-docker-mirror) SKIP_DOCKER_MIRROR=false ;;
             --skip-docker-mirror)  SKIP_DOCKER_MIRROR=true ;;
             -h|--help)
                 cat <<EOF
@@ -61,7 +62,8 @@ setup-myenv.sh - 共享 GPU 服务器个人环境安装脚本
   --install-node         装 Node.js(默认不装,服务器一般不需要)
   --skip-conda           跳过 Miniconda
   --skip-yazi            跳过 Yazi 文件管理器
-  --skip-docker-mirror   跳过 Docker 镜像源配置
+  --setup-docker-mirror  配置 Docker 镜像源(默认不配;会改全局 daemon.json 并重启 docker)
+  --skip-docker-mirror   跳过 Docker 镜像源配置(已是默认行为,保留兼容)
   -h, --help             显示帮助
 
 核心理念:
@@ -467,7 +469,8 @@ setup_docker_mirror() {
     log_step "步骤 7/9: Docker 镜像源"
 
     if [ "$SKIP_DOCKER_MIRROR" = true ]; then
-        log_note "已跳过(--skip-docker-mirror)"
+        log_note "已跳过(默认不配置;共享服务器上改全局 daemon.json 会影响别人)"
+        log_note "确实需要时加 --setup-docker-mirror 显式开启"
         return
     fi
 
@@ -535,8 +538,15 @@ setup_docker_mirror() {
         log_info "Docker 镜像源已配置"
     fi
 
-    if sudo systemctl restart docker 2>/dev/null; then
-        log_info "Docker 已重启"
+    # 重启 docker 会中断宿主上所有正在运行的容器(可能打断别人/自己在跑的测试用例)
+    # 共享服务器上默认不硬重启:有容器在跑就只提示,让用户自己挑时间重启
+    local running
+    running=$(docker ps -q 2>/dev/null | wc -l)
+    if [ "$running" -gt 0 ]; then
+        log_warn "检测到 $running 个容器正在运行,已跳过自动重启 Docker(避免打断在跑的测试)"
+        log_note "配置将在下次 Docker 重启后生效;确认无影响后可手动: sudo systemctl restart docker"
+    elif sudo systemctl restart docker 2>/dev/null; then
+        log_info "Docker 已重启,配置已生效"
     else
         log_warn "Docker 重启失败(配置会在下次重启时生效)"
     fi

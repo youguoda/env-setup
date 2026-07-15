@@ -97,8 +97,8 @@ bash scripts/setup-myenv.sh --install-node
 # 跳过 Yazi(不想要文件管理器)
 bash scripts/setup-myenv.sh --skip-yazi
 
-# 公司有内部 Docker 源,跳过镜像配置
-bash scripts/setup-myenv.sh --skip-docker-mirror
+# 配置 Docker 镜像源(默认不配;会改全局 daemon.json 并在无容器运行时重启 docker)
+bash scripts/setup-myenv.sh --setup-docker-mirror
 
 # 已有 conda,跳过
 bash scripts/setup-myenv.sh --skip-conda
@@ -232,7 +232,7 @@ $                     # 回到公共 root 环境
 }
 ```
 
-`setup-myenv.sh` **默认配置 USTC 镜像源但不改 data-root**——后者需要根据你的实际磁盘情况手动改。
+`setup-myenv.sh` **默认不动 `/etc/docker/daemon.json`**(共享服务器上改全局配置 + 重启 docker 会影响别人正在跑的容器/测试)。需要镜像源时加 `--setup-docker-mirror` 显式开启:它会安全合并进现有配置(保留 `default-runtime: nvidia` 等原有项),且检测到有容器在运行时**不会自动重启 docker**。`data-root` 始终需要根据实际磁盘情况手动改。
 
 ---
 
