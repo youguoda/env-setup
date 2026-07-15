@@ -455,7 +455,19 @@ install_gpu_tools() {
     fi
 
     log_note "使用 pip: $pip_bin"
-    $pip_bin install --user nvitop gpustat hf_transfer huggingface_hub 2>&1 | tail -3
+
+    # 国内服务器加清华 pip 源,否则很慢/超时(apt/npm/conda 都配了,这里别漏)
+    local -a pip_args=(-i https://pypi.tuna.tsinghua.edu.cn/simple)
+    local -a pkgs=(nvitop gpustat hf_transfer huggingface_hub)
+
+    # conda 的 pip 直接装进 conda 环境,不要加 --user
+    # (--user 会装到 ~/.local,和 conda 的 python 不匹配,容易 import 失败);
+    # 系统 pip3/pip 才用 --user 避免污染系统 site-packages
+    if [ "$pip_bin" = "$HOME/miniconda3/bin/pip" ]; then
+        "$pip_bin" install "${pip_args[@]}" "${pkgs[@]}" 2>&1 | tail -3
+    else
+        "$pip_bin" install --user "${pip_args[@]}" "${pkgs[@]}" 2>&1 | tail -3
+    fi
     log_info "GPU 监控 + HuggingFace 工具就绪"
 }
 

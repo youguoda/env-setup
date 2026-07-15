@@ -30,6 +30,9 @@ export HF_HUB_ENABLE_HF_TRANSFER=1    # 大模型下载加速
 # 国内服务器启用 HF 镜像(按需取消注释)
 # export HF_ENDPOINT=https://hf-mirror.com
 
+# === pip 清华源(只在 myenv 子 shell 生效,不写全局 pip.conf,不影响同事)===
+export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+
 # === Torch / CUDA 路径(按需调整)===
 # export CUDA_HOME=/usr/local/cuda
 # export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
