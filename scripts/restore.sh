@@ -126,6 +126,18 @@ setup_apt_mirror() {
         return
     fi
 
+    # Ubuntu 24.04+ 改用 DEB822 新格式(/etc/apt/sources.list.d/ubuntu.sources),
+    # 老的 sources.list 往往为空,sed 改不到任何东西。这里跳过并提示手动改。
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+        log_note "检测到 Ubuntu 24.04+ 新格式 sources,跳过自动换源(需手动改 ubuntu.sources)"
+        return
+    fi
+
+    if [ ! -f /etc/apt/sources.list ]; then
+        log_note "未找到 /etc/apt/sources.list,跳过 apt 换源"
+        return
+    fi
+
     sudo cp /etc/apt/sources.list "/etc/apt/sources.list.bak.$(date +%s)" 2>/dev/null
     sudo sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
     sudo sed -i 's|http://security.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
