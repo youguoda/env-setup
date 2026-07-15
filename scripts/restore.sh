@@ -365,7 +365,8 @@ setup_bashrc() {
         log_warn "无法自动检测 Windows 用户名，winhome 别名可能需要手动修改"
     fi
 
-    # 备份
+    # 备份(全新系统可能还没有 ~/.bashrc,先确保存在,否则备份为空且后续 grep 报错)
+    touch ~/.bashrc
     BAK_NAME=~/.bashrc.bak.$(date +%s)
     cp ~/.bashrc "$BAK_NAME"
     log_note "已备份 .bashrc 到 $BAK_NAME"

@@ -119,6 +119,8 @@ fi
 # ========== 5. 配置 .bashrc ==========
 echo ""
 echo "=== 步骤 5: 配置 ~/.bashrc ==="
+# 全新/最小化系统可能还没有 ~/.bashrc,先确保存在(否则 set -e 下 cp 会中断整个脚本)
+touch ~/.bashrc
 BAK_NAME=~/.bashrc.bak.$(date +%s)
 cp ~/.bashrc "$BAK_NAME"
 echo "  已备份原 .bashrc 到 $BAK_NAME"
