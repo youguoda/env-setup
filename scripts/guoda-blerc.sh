@@ -10,6 +10,15 @@
 # ble.sh 没能加载时(TERM=dumb、非交互、加载失败)直接返回,避免刷 command not found
 [[ ${BLE_VERSION-} ]] || return 0
 
+# === 回车行为 ===
+# 默认 RET 在多行编辑时只插入换行,要按 C-j 才执行;但 C-j 被 Cursor 占用。
+# 改成 RET 直接执行(accept-line 的 syntax 选项会在命令语法不完整时自动换行),
+# 需要手动插入换行时用 Alt+Enter 或 C-x C-m。
+ble-bind -f 'RET'     'accept-line syntax'
+ble-bind -f 'C-m'     'accept-line syntax'
+ble-bind -f 'M-RET'   newline
+ble-bind -f 'C-x C-m' newline
+
 # === 自动建议 ===
 bleopt complete_auto_delay=120      # 停止输入多少毫秒后给建议(默认 1ms,容器里调大更稳)
 bleopt complete_auto_history=1      # 从命令历史生成建议

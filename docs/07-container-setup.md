@@ -124,6 +124,18 @@ $ ls                         ← 又是系统 ls
 | 历史模糊搜索 | **fzf** | `Ctrl+R`(另有 `Ctrl+T` 找文件、`Alt+C` 跳目录) |
 | 子命令/参数补全 | **bash-completion** | `git ch<Tab>` |
 
+### 回车键
+
+ble.sh 默认在多行编辑时把 `Enter` 当换行,底部提示 `-- MULTILINE -- (RET: insert a newline, C-j: run)`,要按 `C-j` 才执行。**`C-j` 被 Cursor 占用**,所以 `blerc` 里改成:
+
+| 按键 | 作用 |
+|---|---|
+| `Enter` | 直接执行(命令语法不完整时才自动换行) |
+| `Alt+Enter` 或 `C-x C-m` | 手动插入换行 |
+| `Ctrl+C` | 放弃当前这段 |
+
+### 其他可调项
+
 调整提示行为改 `~/.guoda/blerc`(模板:[`scripts/guoda-blerc.sh`](../scripts/guoda-blerc.sh)):
 
 ```bash

@@ -279,6 +279,7 @@ timedatectl
 | `command not found: z` | zoxide 未加载 | `source ~/.bashrc` 或 `eval "$(zoxide init bash)"` |
 | `command not found: myenv`(容器内) | 未跑容器安装脚本,或二进制不在 PATH | `bash scripts/setup-container.sh`;若用了 `--prefix`,先 `export PATH="<prefix>/bin:$PATH"` |
 | 容器里 `ls` 没有图标 | 还在默认 bash | 先敲 `myenv`(容器线**不**改 `~/.bashrc`) |
+| 底部出现 `-- MULTILINE --`,回车不执行 | ble.sh 多行编辑模式(默认要按 `C-j`,但被 Cursor 占用) | 已在 `~/.guoda/blerc` 把 `Enter` 改为直接执行;换行用 `Alt+Enter`,放弃用 `Ctrl+C` |
 
 ---
 
