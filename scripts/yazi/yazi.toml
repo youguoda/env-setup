@@ -1,0 +1,18 @@
+# yazi.toml - 容器/myenv 用的 Yazi 配置
+# 部署到 ~/.guoda/yazi/yazi.toml(YAZI_CONFIG_HOME)
+
+[plugin]
+prepend_previewers = [
+    { url = "*.md",        run = "rich-preview" },
+    { url = "*.markdown",  run = "rich-preview" },
+    { url = "*.rst",       run = "rich-preview" },
+    { url = "*.csv",       run = "rich-preview" },
+    { url = "*.tsv",       run = "rich-preview" },
+    { url = "*.json",      run = "rich-preview" },
+    { url = "*.ipynb",     run = "rich-preview" },
+    { url = "*.py",        run = "rich-preview" },
+    { url = "*.sh",        run = "rich-preview" },
+    { url = "*.toml",      run = "rich-preview" },
+    { url = "*.yaml",      run = "rich-preview" },
+    { url = "*.yml",       run = "rich-preview" },
+]

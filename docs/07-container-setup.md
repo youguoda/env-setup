@@ -45,7 +45,7 @@
 
 **二进制**(默认 `$HOME/.local`,可用 `--prefix` 改):
 
-`zoxide` `starship` `fzf` `eza` `yazi` `ble.sh` `uv`
+`zoxide` `starship` `fzf` `eza` `yazi` `ble.sh` `uv` `rich`(rich-cli,给 yazi 预览用)
 
 **兼容链接**:`fd` → `fdfind`,`bat` → `batcat`
 
@@ -102,6 +102,7 @@ $ ls                         ← 又是系统 ls
 | `$PREFIX/bin` | zoxide / starship / eza / yazi / uv |
 | `$PREFIX/opt/fzf` | fzf |
 | `$PREFIX/share/blesh` | ble.sh |
+| `~/.guoda/yazi/` | yazi 配置 + `rich-preview` 插件 |
 | `~/.guoda/bashrc.sh` | 容器版子 shell 配置 |
 | `~/.guoda/env.sh` | PATH / HISTFILE / PREFIX;容器里补 `USER`、locale |
 | `~/.guoda/blerc` | 输入提示设置(ble.sh) |
@@ -111,6 +112,16 @@ $ ls                         ← 又是系统 ls
 配置仍在 `~/.guoda/`。若 `$HOME` 不持久,重建容器后需要再跑一遍脚本(二进制若在 `/data/ws/.local` 会跳过下载,只重部配置)。
 
 `docker exec` 进容器时常见两条 ble.sh 警告(`$USER is empty`、`locale en_US.UTF-8 seems broken`)。`~/.guoda/env.sh` 会在加载 ble.sh **之前**自动补 `USER`、并把缺失的 locale 退回 `C.UTF-8`,只在 myenv 子 shell 生效。
+
+---
+
+## 📂 Yazi 预览(rich-cli)
+
+`y` 打开 yazi 后,右侧预览用 [`rich-cli`](https://github.com/Textualize/rich-cli) 渲染:
+
+`.md` `.json` `.csv` `.rst` `.ipynb` `.py` `.sh` `.toml` `.yaml`
+
+配置在 `~/.guoda/yazi/`(`YAZI_CONFIG_HOME`),插件 `rich-preview.yazi` 调 `rich --force-terminal`。没装 `rich` 时自动退回 yazi 内置 code 预览。
 
 ---
 

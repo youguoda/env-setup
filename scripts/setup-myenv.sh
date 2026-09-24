@@ -310,14 +310,7 @@ install_modern_tools() {
 }
 
 # === 步骤 3.5:Yazi 文件管理器 ===
-install_yazi() {
-    log_step "步骤 3.5/8: Yazi 文件管理器"
-
-    if [ "$SKIP_YAZI" = true ]; then
-        log_note "已跳过(--skip-yazi)"
-        return
-    fi
-
+install_yazi_bin() {
     if command -v yazi > /dev/null 2>&1 || [ -f ~/.local/bin/yazi ]; then
         log_info "yazi 已存在"
         return
@@ -356,6 +349,49 @@ install_yazi() {
     else
         track_error "yazi 下载失败"
     fi
+}
+
+# rich-cli:yazi 用它渲染 md/json/csv/代码预览(命令名是 rich)
+install_rich_cli() {
+    if command -v rich > /dev/null 2>&1; then
+        log_info "rich-cli 已存在"
+        return
+    fi
+
+    local pip_bin=""
+    if [ -f "$HOME/miniconda3/bin/pip" ]; then
+        pip_bin="$HOME/miniconda3/bin/pip"
+    elif command -v pip3 > /dev/null 2>&1; then
+        pip_bin="pip3"
+    elif command -v pip > /dev/null 2>&1; then
+        pip_bin="pip"
+    else
+        log_warn "没有 pip,跳过 rich-cli(yazi 预览会退回内置 code)"
+        return
+    fi
+
+    log_note "安装 rich-cli(yazi 预览)..."
+    # conda 的 pip 直接装进 conda 环境,系统 pip 才用 --user
+    local -a pip_args=(-i https://pypi.tuna.tsinghua.edu.cn/simple)
+    [ "$pip_bin" != "$HOME/miniconda3/bin/pip" ] && pip_args+=(--user)
+
+    if "$pip_bin" install "${pip_args[@]}" rich-cli > /dev/null 2>&1; then
+        log_info "rich-cli 安装完成"
+    else
+        track_error "rich-cli 安装失败"
+    fi
+}
+
+install_yazi() {
+    log_step "步骤 3.5/8: Yazi 文件管理器 + rich 预览"
+
+    if [ "$SKIP_YAZI" = true ]; then
+        log_note "已跳过(--skip-yazi)"
+        return
+    fi
+
+    install_yazi_bin
+    install_rich_cli
 }
 
 # === 步骤 4:Miniconda ===
@@ -493,7 +529,16 @@ setup_guoda_config() {
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     # 创建 ~/.guoda/ 目录
-    mkdir -p ~/.guoda/yazi
+    mkdir -p ~/.guoda/yazi/plugins
+    if [ -f "$SCRIPT_DIR/yazi/yazi.toml" ]; then
+        cp "$SCRIPT_DIR/yazi/yazi.toml" "$HOME/.guoda/yazi/yazi.toml"
+        log_info "部署 $HOME/.guoda/yazi/yazi.toml (rich-cli 预览)"
+    fi
+    if [ -d "$SCRIPT_DIR/yazi/plugins/rich-preview.yazi" ]; then
+        rm -rf "$HOME/.guoda/yazi/plugins/rich-preview.yazi"
+        cp -a "$SCRIPT_DIR/yazi/plugins/rich-preview.yazi" "$HOME/.guoda/yazi/plugins/"
+        log_info "部署 rich-preview.yazi 插件"
+    fi
 
     # 复制配置文件
     for f in guoda-bashrc.sh guoda-env.sh guoda-starship.toml; do

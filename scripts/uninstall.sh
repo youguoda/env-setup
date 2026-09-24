@@ -146,7 +146,7 @@ clean_tools() {
     fi
 
     # ~/.local/bin 下本项目装的二进制
-    for b in zoxide starship eza yazi uv uvx nvitop gpustat; do
+    for b in zoxide starship eza yazi uv uvx rich nvitop gpustat; do
         rm_path ".local/bin/$b" "$HOME/.local/bin/$b"
     done
     rm_path "ble.sh (.local/share/blesh)" "$HOME/.local/share/blesh"
@@ -158,11 +158,12 @@ clean_tools() {
     fi
     if [ -n "$recorded" ] && [ "$recorded" != "$HOME/.local" ]; then
         log_note "按 ~/.guoda/prefix 清理容器前缀: $recorded"
-        for b in zoxide starship eza yazi uv uvx myenv; do
+        for b in zoxide starship eza yazi uv uvx myenv rich; do
             rm_path "prefix/bin/$b" "$recorded/bin/$b"
         done
         rm_path "prefix/share/blesh" "$recorded/share/blesh"
         rm_path "prefix/opt/fzf" "$recorded/opt/fzf"
+        rm_path "prefix/share/uv" "$recorded/share/uv"
     fi
 
     # fzf / nvm / miniconda

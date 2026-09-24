@@ -102,6 +102,7 @@ env-setup/
 │   ├── setup-container.sh          # ⭐ 容器内安装（不改 bashrc / 不 apt upgrade）
 │   ├── guoda-bashrc.container.sh   # 容器版 ~/.guoda/bashrc.sh
 │   ├── guoda-env.container.sh      # 容器版 ~/.guoda/env.sh（无 HF/conda/GPU）
+│   ├── yazi/                       # ~/.guoda/yazi（rich-cli 预览 + 插件）
 │   # --- LLM 工作流模板（WSL + 服务器通用）---
 │   ├── vllm-run.template.sh        # vLLM 启动脚本模板
 │   └── eval-run.template.sh        # lm-eval 评测脚本模板

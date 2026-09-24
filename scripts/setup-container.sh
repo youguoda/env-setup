@@ -331,12 +331,42 @@ install_yazi() {
             track_error "uv 下载失败"
         fi
     fi
+
+    # rich-cli: yazi 预览依赖,命令名是 rich
+    if have_bin rich; then
+        log_info "rich-cli 已存在"
+    elif ! have_bin uv && [ ! -x "$PREFIX/bin/uv" ]; then
+        log_warn "没有 uv,跳过 rich-cli(yazi 预览会退回内置 code)"
+    else
+        log_note "安装 rich-cli(uv tool,清华 PyPI)..."
+        local uvbin
+        uvbin=$(command -v uv 2>/dev/null || true)
+        [ -z "$uvbin" ] && uvbin="$PREFIX/bin/uv"
+        if UV_TOOL_BIN_DIR="$PREFIX/bin" \
+            UV_TOOL_DIR="$PREFIX/share/uv/tools" \
+            UV_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple" \
+            "$uvbin" tool install --force rich-cli > /tmp/uv-rich.log 2>&1; then
+            log_info "rich-cli 安装完成"
+        else
+            track_error "rich-cli 安装失败(见 /tmp/uv-rich.log)"
+        fi
+    fi
 }
 
 setup_guoda_config() {
     log_step "步骤 4/6: 部署 ~/.guoda/ + myenv"
 
-    mkdir -p "$HOME/.guoda/yazi"
+    mkdir -p "$HOME/.guoda/yazi/plugins"
+
+    if [ -f "$SCRIPT_DIR/yazi/yazi.toml" ]; then
+        cp "$SCRIPT_DIR/yazi/yazi.toml" "$HOME/.guoda/yazi/yazi.toml"
+        log_info "部署 $HOME/.guoda/yazi/yazi.toml (rich-cli 预览)"
+    fi
+    if [ -d "$SCRIPT_DIR/yazi/plugins/rich-preview.yazi" ]; then
+        rm -rf "$HOME/.guoda/yazi/plugins/rich-preview.yazi"
+        cp -a "$SCRIPT_DIR/yazi/plugins/rich-preview.yazi" "$HOME/.guoda/yazi/plugins/"
+        log_info "部署 rich-preview.yazi 插件"
+    fi
 
     local src dest
     src="$SCRIPT_DIR/guoda-bashrc.container.sh"
@@ -409,7 +439,7 @@ verify_and_summary() {
     printf "  %-14s %-32s %s\n" "----" "----" "----"
 
     local cmd full ver
-    for cmd in htop tree rg fd bat tldr jq unzip git curl zoxide starship eza yazi uv; do
+    for cmd in htop tree rg fd bat tldr jq unzip git curl zoxide starship eza yazi uv rich; do
         full=$(command -v "$cmd" 2>/dev/null || true)
         [ -z "$full" ] && [ -x "$PREFIX/bin/$cmd" ] && full="$PREFIX/bin/$cmd"
         if [ -n "$full" ]; then
@@ -461,7 +491,7 @@ verify_and_summary() {
   myenv
   ls          # eza
   z <关键词>  # zoxide
-  y           # yazi
+  y           # yazi(md/json/py 用 rich-cli 预览)
   uv --version
   Ctrl+R      # fzf 历史
   exit        # 回到容器默认 bash
