@@ -280,6 +280,8 @@ timedatectl
 | `command not found: myenv`(容器内) | 未跑容器安装脚本,或二进制不在 PATH | `bash scripts/setup-container.sh`;若用了 `--prefix`,先 `export PATH="<prefix>/bin:$PATH"` |
 | 容器里 `ls` 没有图标 | 还在默认 bash | 先敲 `myenv`(容器线**不**改 `~/.bashrc`) |
 | 底部出现 `-- MULTILINE --`,回车不执行 | ble.sh 多行编辑模式(默认要按 `C-j`,但被 Cursor 占用) | 已在 `~/.guoda/blerc` 把 `Enter` 改为直接执行;换行用 `Alt+Enter`,放弃用 `Ctrl+C` |
+| `ble.sh: $USER is empty` | `docker exec` 没走登录,未设 `USER` | 已在 `~/.guoda/env.sh` 自动补 `USER=$(id -un)`;退出 myenv 再进一次 |
+| `locale 'en_US.UTF-8' seems broken` | 镜像声明了该 locale 但没 `locale-gen` | 已在 `env.sh` 退回 `C.UTF-8`;也可 `apt install locales && locale-gen en_US.UTF-8` |
 
 ---
 

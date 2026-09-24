@@ -103,12 +103,14 @@ $ ls                         ← 又是系统 ls
 | `$PREFIX/opt/fzf` | fzf |
 | `$PREFIX/share/blesh` | ble.sh |
 | `~/.guoda/bashrc.sh` | 容器版子 shell 配置 |
-| `~/.guoda/env.sh` | PATH / HISTFILE / PREFIX |
+| `~/.guoda/env.sh` | PATH / HISTFILE / PREFIX;容器里补 `USER`、locale |
 | `~/.guoda/blerc` | 输入提示设置(ble.sh) |
 | `~/.guoda/prefix` | 给 `uninstall.sh` 看的前缀记录 |
 | `/usr/local/bin/myenv` | 启动器(写不了则落到 `$PREFIX/bin/myenv`) |
 
 配置仍在 `~/.guoda/`。若 `$HOME` 不持久,重建容器后需要再跑一遍脚本(二进制若在 `/data/ws/.local` 会跳过下载,只重部配置)。
+
+`docker exec` 进容器时常见两条 ble.sh 警告(`$USER is empty`、`locale en_US.UTF-8 seems broken`)。`~/.guoda/env.sh` 会在加载 ble.sh **之前**自动补 `USER`、并把缺失的 locale 退回 `C.UTF-8`,只在 myenv 子 shell 生效。
 
 ---
 
