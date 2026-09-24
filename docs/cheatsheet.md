@@ -190,12 +190,18 @@ unzip in.zip -d dest/      # 🟦
 
 ## 🐍 Python
 
-> 本节：🟨 别名 1 个（`venv`）、🟦 命令 2 个（`python`、`pip`）
+> 本节：🟨 别名 1 个（`venv`）、🟦 命令若干（`python`、`pip`、`uv`）
 
 ```bash
 venv              # 🟨 激活虚拟环境（自动找 .venv 或 venv）
 python -m venv .venv  # 🟦 创建虚拟环境
 pip install -r requirements.txt  # 🟦
+
+# uv(容器线 setup-container.sh 会装;更快的 Python 包管理)
+uv --version
+uv venv .venv
+uv pip install -r requirements.txt
+uvx ruff --version   # 临时跑工具,不必先装进环境
 ```
 
 ---

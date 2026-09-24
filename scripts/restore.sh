@@ -183,16 +183,31 @@ install_modern_tools() {
     # test_github / proxy_fetch 来自 lib.sh
     test_github && log_note "github 直连可用" || log_note "github 直连不通，将使用代理"
 
-    # --- zoxide ---
+    # --- zoxide（release 只有带版本号的 tar.gz，没有裸二进制）---
     if [ -f ~/.local/bin/zoxide ]; then
         log_info "zoxide 已存在"
     else
         log_note "安装 zoxide..."
-        if proxy_fetch "https://github.com/ajeetdsouza/zoxide/releases/latest/download/zoxide-x86_64-unknown-linux-musl" ~/.local/bin/zoxide; then
-            chmod +x ~/.local/bin/zoxide
-            log_info "zoxide 安装完成"
+        ZTAG=$(gh_latest_tag ajeetdsouza/zoxide)
+        if [ -z "$ZTAG" ]; then
+            track_error "zoxide 版本号获取失败"
         else
-            track_error "zoxide 安装失败（网络）"
+            ZURL="https://github.com/ajeetdsouza/zoxide/releases/download/${ZTAG}/zoxide-${ZTAG#v}-x86_64-unknown-linux-musl.tar.gz"
+            if proxy_fetch "$ZURL" /tmp/zoxide.tar.gz; then
+                ZDIR=$(mktemp -d)
+                tar xzf /tmp/zoxide.tar.gz -C "$ZDIR"
+                ZBIN=$(find "$ZDIR" -name zoxide -type f | head -1)
+                if [ -n "$ZBIN" ]; then
+                    cp "$ZBIN" ~/.local/bin/zoxide
+                    chmod +x ~/.local/bin/zoxide
+                    log_info "zoxide 安装完成（$ZTAG）"
+                else
+                    track_error "zoxide 二进制未找到"
+                fi
+                rm -rf /tmp/zoxide.tar.gz "$ZDIR"
+            else
+                track_error "zoxide 安装失败（网络）"
+            fi
         fi
     fi
 

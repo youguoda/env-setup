@@ -13,7 +13,14 @@
 #   - 菜单式 Tab 补全(方向键选择)
 #   - 语法高亮(命令存在显示绿色,错误红色)
 #   - 历史中已有命令的智能补全
-[[ $- == *i* ]] && [ -f ~/.local/share/blesh/ble.sh ] && source ~/.local/share/blesh/ble.sh --noattach
+if [[ $- == *i* ]]; then
+    _blesh="${BLESH_PATH:-$HOME/.local/share/blesh/ble.sh}"
+    if [ -f "$_blesh" ]; then
+        source "$_blesh" --noattach
+        [ -f ~/.guoda/blerc ] && source ~/.guoda/blerc
+    fi
+    unset _blesh
+fi
 
 # === 1. 基础:加载系统默认配置 + 用户的 ~/.bashrc ===
 [ -f /etc/bash.bashrc ] && source /etc/bash.bashrc
@@ -28,7 +35,14 @@ if command -v starship > /dev/null 2>&1; then
     export STARSHIP_CONFIG="$HOME/.guoda/starship.toml"
     eval "$(starship init bash)"
 fi
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+if [ -n "${FZF_DIR:-}" ] && [ -f "$FZF_DIR/shell/key-bindings.bash" ]; then
+    # shellcheck disable=SC1091
+    source "$FZF_DIR/shell/key-bindings.bash"
+    [ -f "$FZF_DIR/shell/completion.bash" ] && source "$FZF_DIR/shell/completion.bash"
+elif [ -f ~/.fzf.bash ]; then
+    # shellcheck disable=SC1090
+    source ~/.fzf.bash
+fi
 
 # === 4. 公共别名/函数(单一真相源: scripts/aliases.common.sh)===
 [ -f ~/.guoda/aliases.sh ] && source ~/.guoda/aliases.sh

@@ -184,16 +184,31 @@ install_modern_tools() {
     # test_github / proxy_fetch 来自 lib.sh
     test_github && log_note "github 直连可用" || log_note "github 直连不通,将用代理"
 
-    # --- zoxide ---
+    # --- zoxide(release 只有带版本号的 tar.gz,没有裸二进制)---
     if command -v zoxide > /dev/null 2>&1 || [ -f ~/.local/bin/zoxide ]; then
         log_info "zoxide 已存在"
     else
         log_note "安装 zoxide..."
-        if proxy_fetch "https://github.com/ajeetdsouza/zoxide/releases/latest/download/zoxide-x86_64-unknown-linux-musl" ~/.local/bin/zoxide; then
-            chmod +x ~/.local/bin/zoxide
-            log_info "zoxide 安装完成"
+        ZTAG=$(gh_latest_tag ajeetdsouza/zoxide)
+        if [ -z "$ZTAG" ]; then
+            track_error "zoxide 版本号获取失败"
         else
-            track_error "zoxide 安装失败(网络)"
+            ZURL="https://github.com/ajeetdsouza/zoxide/releases/download/${ZTAG}/zoxide-${ZTAG#v}-x86_64-unknown-linux-musl.tar.gz"
+            if proxy_fetch "$ZURL" /tmp/zoxide.tar.gz; then
+                ZDIR=$(mktemp -d)
+                tar xzf /tmp/zoxide.tar.gz -C "$ZDIR"
+                ZBIN=$(find "$ZDIR" -name zoxide -type f | head -1)
+                if [ -n "$ZBIN" ]; then
+                    cp "$ZBIN" ~/.local/bin/zoxide
+                    chmod +x ~/.local/bin/zoxide
+                    log_info "zoxide 安装完成 ($ZTAG)"
+                else
+                    track_error "zoxide 二进制未找到"
+                fi
+                rm -rf /tmp/zoxide.tar.gz "$ZDIR"
+            else
+                track_error "zoxide 安装失败(网络)"
+            fi
         fi
     fi
 
@@ -497,6 +512,12 @@ setup_guoda_config() {
             track_error "找不到 $SCRIPT_DIR/$f"
         fi
     done
+
+    # ble.sh 输入提示设置 → ~/.guoda/blerc
+    if [ -f "$SCRIPT_DIR/guoda-blerc.sh" ]; then
+        cp "$SCRIPT_DIR/guoda-blerc.sh" "$HOME/.guoda/blerc"
+        log_info "部署 $HOME/.guoda/blerc"
+    fi
 
     # 公共别名(单一真相源)→ ~/.guoda/aliases.sh
     if [ -f "$SCRIPT_DIR/aliases.common.sh" ]; then

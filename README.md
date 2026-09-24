@@ -8,7 +8,7 @@
 
 ## 📖 项目简介
 
-这个项目记录了 **2026-06-27 一次完整的环境治理过程**，并扩展到**共享 GPU 服务器工作环境**，包括：
+这个项目记录了 **2026-06-27 一次完整的环境治理过程**，并扩展到**共享 GPU 服务器**和**测试容器内效率工具**，包括：
 
 ### 🖥️ 个人机器（Windows + WSL2）
 - 🧹 C 盘深度瘦身（**释放 82 GB**，7.56 GB → 90 GB）
@@ -22,7 +22,12 @@
 - 🤗 HuggingFace 缓存管理（100GB 配额下的生存指南）
 - 🚀 服务器一键还原（10 分钟拉起整套工作环境）
 
-**所有步骤可重复执行**，无论是个人 WSL 还是公司服务器，新机器上按照文档走一遍即可恢复整套环境。
+### 📦 测试容器（第三条产品线）
+- 🧰 容器内自包含安装效率工具（不从宿主机挂 `~/.local`）
+- 🔐 不改默认 `~/.bashrc`，`myenv` 子 shell 开关
+- 💾 可选 `--prefix /data/ws/.local` 把二进制落到持久盘
+
+**所有步骤可重复执行**，个人 WSL、公司服务器、测试容器按对应脚本走一遍即可恢复环境。
 
 ---
 
@@ -43,6 +48,12 @@
 | 文档 | 内容 | 推荐场景 |
 |---|---|---|
 | [06-server-setup.md](docs/06-server-setup.md) | ⭐ **大模型测试开发服务器环境** | **登录新 GPU 服务器必看** |
+
+### 📦 测试容器（07）
+
+| 文档 | 内容 | 推荐场景 |
+|---|---|---|
+| [07-container-setup.md](docs/07-container-setup.md) | ⭐ **容器内效率工具（自包含安装）** | **已经在容器里、要定制装 CLI** |
 
 ### 📚 通用参考
 
@@ -65,6 +76,7 @@ env-setup/
 │   ├── 04-optimization.md          # WSL 工具链优化（WSL）
 │   ├── 05-restore.md               # WSL 一键还原详解（WSL）
 │   ├── 06-server-setup.md          # ⭐ 共享 GPU 服务器工作环境（myenv 隔离方案）
+│   ├── 07-container-setup.md       # ⭐ 容器内效率工具（第三条产品线）
 │   ├── cheatsheet.md               # 工具速查表（通用）
 │   └── troubleshooting.md          # 故障排查（通用）
 ├── scripts/                        # 可直接执行的脚本
@@ -85,6 +97,11 @@ env-setup/
 │   ├── guoda-bashrc.sh             # ~/.guoda/bashrc.sh（子 shell 配置）
 │   ├── guoda-env.sh                # ~/.guoda/env.sh（环境变量）
 │   ├── guoda-starship.toml         # ~/.guoda/starship.toml（提示符）
+│   ├── guoda-blerc.sh              # ~/.guoda/blerc（ble.sh 输入提示设置）
+│   # --- 测试容器（效率工具自包含）---
+│   ├── setup-container.sh          # ⭐ 容器内安装（不改 bashrc / 不 apt upgrade）
+│   ├── guoda-bashrc.container.sh   # 容器版 ~/.guoda/bashrc.sh
+│   ├── guoda-env.container.sh      # 容器版 ~/.guoda/env.sh（无 HF/conda/GPU）
 │   # --- LLM 工作流模板（WSL + 服务器通用）---
 │   ├── vllm-run.template.sh        # vLLM 启动脚本模板
 │   └── eval-run.template.sh        # lm-eval 评测脚本模板
@@ -126,7 +143,20 @@ myenv-clean       # 一键清理自己跑的容器
 bash scripts/setup-myenv.sh --install-node
 ```
 
-### 🧹 卸载 / 还原到初始状态（WSL + 服务器通用）
+### 📦 测试容器（已在容器内，自包含装效率工具）
+
+```bash
+# 默认装到 ~/.local；配置走 ~/.guoda/，不改容器默认 bashrc
+bash scripts/setup-container.sh
+
+# HOME 会随容器消失时，把二进制放到持久盘
+bash scripts/setup-container.sh --prefix /data/ws/.local
+
+myenv             # 进入效率工具环境
+exit              # 回到容器默认 bash
+```
+
+### 🧹 卸载 / 还原到初始状态（WSL + 服务器 + 容器通用）
 
 ```bash
 # 先预览会删什么（强烈建议先跑这个，什么都不会改）
@@ -180,7 +210,7 @@ wsl --shutdown
 
 ## 📝 维护建议
 
-- **新增工具/配置时**：更新 `docs/cheatsheet.md` 和 `scripts/install_tools.sh`
+- **新增工具/配置时**：更新 `docs/cheatsheet.md`；WSL 改 `scripts/install_tools.sh`，容器改 `scripts/setup-container.sh`
 - **遇到新问题**：记录到 `docs/troubleshooting.md`
 - **环境变更时**：在底部「变更日志」追加一行
 - **重要操作前**：把关键文件备份到 `backups/`
@@ -194,3 +224,4 @@ wsl --shutdown
 | 2026-06-27 | 初始化 | C 盘瘦身 + WSL 迁移 + 工具链配置 |
 | 2026-06-27 | 扩展服务器场景 | 加入 GPU 服务器一键还原 + vLLM/评测模板 |
 | 2026-06-27 | 重构服务器方案 | 改用「子 shell 隔离」：工具永久装 + `myenv` 进子 shell + `myenv-clean` 清理；加入 Yazi 文件管理器；废弃 `restore-server.sh` 和 `server-bashrc.snippet.sh` |
+| 2026-09-24 | 第三条产品线 | 容器内自包含效率工具：`setup-container.sh`，不改 bashrc / 不 apt upgrade；可选 `--prefix` 持久化 |

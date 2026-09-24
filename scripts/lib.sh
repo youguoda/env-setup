@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # lib.sh - 安装脚本共享库(颜色 / 日志 / GitHub 下载容错)
 #
-# 由 restore.sh、setup-myenv.sh 在开头 source:
+# 由 restore.sh、setup-myenv.sh、setup-container.sh 在开头 source:
 #   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   source "$SCRIPT_DIR/lib.sh"
 #
@@ -33,6 +33,23 @@ track_error() {
 # === GitHub 连通性检测 ===
 test_github() {
     curl -sI --max-time 5 https://github.com > /dev/null 2>&1
+}
+
+# === 取 GitHub 仓库最新 tag(带代理回退) ===
+# 用法: tag=$(gh_latest_tag ajeetdsouza/zoxide)   # → v0.10.0
+gh_latest_tag() {
+    local repo=$1 api tag=""
+    api="https://api.github.com/repos/${repo}/releases/latest"
+    if test_github; then
+        tag=$(curl -sL --max-time 15 "$api" 2>/dev/null | grep -oP '"tag_name":\s*"\K[^"]+' | head -1)
+    fi
+    if [ -z "$tag" ]; then
+        for proxy in "https://gh-proxy.com/" "https://ghproxy.net/" "https://mirror.ghproxy.com/"; do
+            tag=$(curl -sL --max-time 15 "${proxy}${api}" 2>/dev/null | grep -oP '"tag_name":\s*"\K[^"]+' | head -1)
+            [ -n "$tag" ] && break
+        done
+    fi
+    [ -n "$tag" ] && printf '%s\n' "$tag"
 }
 
 # === 带代理回退的下载 ===

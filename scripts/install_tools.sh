@@ -47,17 +47,31 @@ mkdir -p ~/.local/bin
 # test_github / proxy_fetch 来自 lib.sh
 test_github && echo "  github 直连可用 ✓" || echo "  github 直连不通，将使用代理 ⚠️"
 
-# --- zoxide ---
+# --- zoxide（release 只有带版本号的 tar.gz，没有裸二进制）---
 echo "  -- zoxide --"
 if [ -f ~/.local/bin/zoxide ]; then
     echo "    zoxide 已存在，跳过"
 else
-    URL="https://github.com/ajeetdsouza/zoxide/releases/latest/download/zoxide-x86_64-unknown-linux-musl"
-    if proxy_fetch "$URL" ~/.local/bin/zoxide; then
-        chmod +x ~/.local/bin/zoxide
-        echo "    ✓ zoxide 安装成功"
+    ZTAG=$(gh_latest_tag ajeetdsouza/zoxide)
+    if [ -z "$ZTAG" ]; then
+        echo "    ✗ zoxide 版本号获取失败"
     else
-        echo "    ✗ zoxide 安装失败（网络）"
+        URL="https://github.com/ajeetdsouza/zoxide/releases/download/${ZTAG}/zoxide-${ZTAG#v}-x86_64-unknown-linux-musl.tar.gz"
+        if proxy_fetch "$URL" /tmp/zoxide.tar.gz; then
+            ZDIR=$(mktemp -d)
+            tar xzf /tmp/zoxide.tar.gz -C "$ZDIR"
+            ZBIN=$(find "$ZDIR" -name zoxide -type f | head -1)
+            if [ -n "$ZBIN" ]; then
+                cp "$ZBIN" ~/.local/bin/zoxide
+                chmod +x ~/.local/bin/zoxide
+                echo "    ✓ zoxide 安装成功（$ZTAG）"
+            else
+                echo "    ✗ zoxide 二进制未找到"
+            fi
+            rm -rf /tmp/zoxide.tar.gz "$ZDIR"
+        else
+            echo "    ✗ zoxide 安装失败（网络）"
+        fi
     fi
 fi
 

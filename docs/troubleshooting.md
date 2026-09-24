@@ -277,6 +277,8 @@ timedatectl
 | `npm ERR! EACCES` | npm 全局安装权限问题 | 用 nvm 装的 node 不需要 sudo，直接 `npm i -g xxx` |
 | `fatal: not in a git repo` | 当前目录不是 git 仓库 | 检查路径，或 `git init` |
 | `command not found: z` | zoxide 未加载 | `source ~/.bashrc` 或 `eval "$(zoxide init bash)"` |
+| `command not found: myenv`(容器内) | 未跑容器安装脚本,或二进制不在 PATH | `bash scripts/setup-container.sh`;若用了 `--prefix`,先 `export PATH="<prefix>/bin:$PATH"` |
+| 容器里 `ls` 没有图标 | 还在默认 bash | 先敲 `myenv`(容器线**不**改 `~/.bashrc`) |
 
 ---
 

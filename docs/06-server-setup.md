@@ -620,21 +620,23 @@ $ myenv
 
 ---
 
-## 🔗 与 WSL 个人环境的关系
+## 🔗 三条产品线怎么选
 
-| 维度 | WSL(01-05 章) | 共享服务器(本章) |
-|---|---|---|
-| 还原脚本 | `scripts/restore.sh` | `scripts/setup-myenv.sh` |
-| 配置位置 | 直接改 `~/.bashrc` | `~/.guoda/`(完全隔离) |
-| 触发方式 | 永久生效 | 敲 `myenv` 进子 shell |
-| 退出方式 | 不退出 | `exit` 子 shell |
-| 共享工具链(zoxide/eza/yazi/...) | ✅ | ✅ |
-| 共享别名规范 | ✅ | ✅(主体) |
+| 维度 | WSL(01-05 章) | 共享服务器(本章) | 测试容器([07](07-container-setup.md)) |
+|---|---|---|---|
+| 还原脚本 | `scripts/restore.sh` | `scripts/setup-myenv.sh` | `scripts/setup-container.sh` |
+| 配置位置 | 直接改 `~/.bashrc` | `~/.guoda/` | `~/.guoda/`(容器精简版) |
+| 触发方式 | 永久生效 | `myenv` 子 shell | `myenv` 子 shell |
+| 工具从哪来 | 装进 WSL | 装在宿主机,可挂进容器 | **装在容器内**(可 `--prefix` 持久化) |
+| conda / GPU / HF | 否 | 是 | 否 |
 
-**好处**:两套环境共享同一份 git 仓库,但**配置哲学完全不同**——
+**好处**:同一份 git 仓库,三条线配置哲学不同——
 - WSL 是「**我的电脑我做主**」
-- 服务器是「**借来的机器要客气**」
+- 服务器是「**借来的机器要客气**」(host 装工具,`drun*` 挂进容器)
+- 容器是「**镜像保持原样,CLI 按需打开**」(已经在容器里时走 07)
+
+已经在容器里、只要效率工具 → 不要跑本章的 `setup-myenv.sh`,改走 [`07-container-setup.md`](07-container-setup.md)。
 
 ---
 
-⏮️ [← 05 一键还原](05-restore.md) | [返回主页](../README.md) | [速查表 →](cheatsheet.md)
+⏮️ [← 05 一键还原](05-restore.md) | [返回主页](../README.md) | [容器效率工具 →](07-container-setup.md)
